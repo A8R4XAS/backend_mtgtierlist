@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "outDir": "build",
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false,
+    "module": "commonjs",
+    "target": "es2023",
+    "rootDir": "src",
+    "lib": [
+      "es2023",
+      "dom"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

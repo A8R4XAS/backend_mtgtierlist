@@ -1,0 +1,12 @@
+{
+  "port": "env(PORT)",
+  "settings": {
+    "session": {
+      "store": "@foal/typeorm"
+    }
+  },
+  "database": {
+    "type": "sqlite",
+    "database": "./db.sqlite3"
+  }
+}
