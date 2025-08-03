@@ -7,6 +7,13 @@ import { Config, createApp, Logger, ServiceManager } from '@foal/core';
 import { AppController } from './app/app.controller';
 import { dataSource } from './db';
 
+// dotenv
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+console.log('Database host:', process.env.DB_HOST);
+
+
 async function main() {
   await dataSource.initialize();
 
