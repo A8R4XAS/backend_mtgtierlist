@@ -139,6 +139,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # TypeScript Build Output (Backend)
-backend/dist/
-backend/out/
-backend/build/
+/dist/
+/out/
+/build/
+
