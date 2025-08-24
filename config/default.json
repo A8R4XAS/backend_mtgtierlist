@@ -1,18 +1,15 @@
 {
-  "port": "env(PORT, 3001)",
   "settings": {
     "session": {
       "store": "@foal/typeorm"
-    },
-    "env": "development"
+    }
   },
   "database": {
-    "type": "env(DATABASE_TYPE, postgres)",
-    "host": "env(DATABASE_HOST, localhost)",
-    "port": "env(DATABASE_PORT, 5432)",
-    "username": "env(DATABASE_USERNAME, postgres)",
-    "password": "env(DATABASE_PASSWORD, )",
-    "database": "env(DATABASE_NAME, mtgtierlist_local)",
-    "synchronize": "env(DATABASE_SYNCHRONIZE, true)"
+    "type": "postgres",
+    "host": "env(DB_HOST)",
+    "port": "env(DB_PORT)",
+    "username": "env(DB_USERNAME)",
+    "password": "env(DB_PASSWORD)",
+    "database": "env(DB_NAME)"
   }
 }
