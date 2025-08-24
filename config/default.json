@@ -1,12 +1,18 @@
 {
-  "port": "env(PORT)",
+  "port": "env(PORT, 3001)",
   "settings": {
     "session": {
       "store": "@foal/typeorm"
-    }
+    },
+    "env": "development"
   },
   "database": {
-    "type": "sqlite",
-    "database": "./db.sqlite3"
+    "type": "env(DATABASE_TYPE, postgres)",
+    "host": "env(DATABASE_HOST, localhost)",
+    "port": "env(DATABASE_PORT, 5432)",
+    "username": "env(DATABASE_USERNAME, postgres)",
+    "password": "env(DATABASE_PASSWORD, )",
+    "database": "env(DATABASE_NAME, mtgtierlist_local)",
+    "synchronize": "env(DATABASE_SYNCHRONIZE, true)"
   }
 }
