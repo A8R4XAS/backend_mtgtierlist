@@ -1,29 +1,28 @@
-
-import { Config } from '@foal/core';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { Config } from '@foal/core';
+import * as entities from './app/entities'; // importiert alle Entities aus index.ts
 
-const env = Config.get('.env'); // 'development' | 'test' | 'production'
-const isProd = env === 'production';
+const isProd = Config.get('settings.env', 'string') === 'production';
 
-const dbConfig: Partial<PostgresConnectionOptions> = isProd 
+const dbConfig: Partial<PostgresConnectionOptions> = isProd
   ? {
       type: 'postgres',
-      url: Config.getOrThrow('database.url', 'string'),
-      ssl: { rejectUnauthorized: false }, // Render -> selbstsigniertes SSL-Zertifikat 
-  } 
-: {
-      type: Config.getOrThrow('database.type', 'string') as any,
-      host: Config.getOrThrow('database.host', 'string'),
-      port: Number(Config.getOrThrow('database.port', 'string')), // Zahl konvertieren
-      username: Config.getOrThrow('database.username', 'string'),
-      password: Config.getOrThrow('database.password', 'string'),
-      database: Config.getOrThrow('database.database', 'string'),
-  };
+      url: Config.get('database.url', 'string'),
+      ssl: { rejectUnauthorized: false },
+    }
+  : {
+      type: 'postgres',
+      host: Config.get('database.host', 'string'),
+      port: Config.get('database.port', 'number'),
+      username: Config.get('database.username', 'string'),
+      password: Config.get('database.password', 'string'),
+      database: Config.get('database.database', 'string'),
+    };
 
 export const dataSource = new DataSource({
   ...dbConfig,
   synchronize: Config.get('database.synchronize', 'boolean', true),
-  entities: ['build/app/**/*.entity.js'],
+  entities: Object.values(entities), // alle Entities aus index.ts
   migrations: ['build/migrations/*.js'],
 } as PostgresConnectionOptions);
