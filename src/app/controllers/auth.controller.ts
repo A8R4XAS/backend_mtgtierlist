@@ -11,7 +11,7 @@ const credentialsSchema = {
   additionalProperties: false,
 };
 
-const signUpSChema = {
+const signUpSchema = {
   type: 'object',
   properties: {
     name: { type: 'string', maxLength: 255 },
@@ -55,7 +55,7 @@ export class AuthController {
   }
 
   @Post('/signup')
-  @ValidateBody(signUpSChema)
+  @ValidateBody(signUpSchema)
   async signup(ctx: Context) {
   
     const name = ctx.request.body.name;
