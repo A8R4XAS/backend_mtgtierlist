@@ -7,6 +7,8 @@ import { Config, createApp, Logger, ServiceManager } from '@foal/core';
 import { AppController } from './app/app.controller';
 import { dataSource } from './db';
 
+console.log('Database host (from Config):', Config.get('database.host'));
+
 async function main() {
   await dataSource.initialize();
 

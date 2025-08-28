@@ -1,24 +1,28 @@
-
-import { Config } from '@foal/core';
 import { DataSource } from 'typeorm';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { Config } from '@foal/core';
+import * as entities from './app/entities'; // importiert alle Entities aus index.ts
 
-export function createDataSource(): DataSource {
-  return new DataSource({
-    type: Config.getOrThrow('database.type', 'string') as any,
+const isProd = Config.get('settings.env', 'string') === 'production';
 
-    url: Config.get('database.url', 'string'),
-    host: Config.get('database.host', 'string'),
-    port: Config.get('database.port', 'number'),
-    username: Config.get('database.username', 'string'),
-    password: Config.get('database.password', 'string'),
-    database: Config.get('database.database', 'string'),
+const dbConfig: Partial<PostgresConnectionOptions> = isProd
+  ? {
+      type: 'postgres',
+      url: Config.get('database.url', 'string'),
+      ssl: { rejectUnauthorized: false },
+    }
+  : {
+      type: 'postgres',
+      host: Config.get('database.host', 'string'),
+      port: Config.get('database.port', 'number'),
+      username: Config.get('database.username', 'string'),
+      password: Config.get('database.password', 'string'),
+      database: Config.get('database.database', 'string'),
+    };
 
-    dropSchema: Config.get('database.dropSchema', 'boolean', false),
-    synchronize: Config.get('database.synchronize', 'boolean', false),
-
-    entities: ['build/app/**/*.entity.js'],
-    migrations: ['build/migrations/*.js'],
-  });
-}
-
-export const dataSource = createDataSource();
+export const dataSource = new DataSource({
+  ...dbConfig,
+  synchronize: Config.get('database.synchronize', 'boolean', true),
+  entities: Object.values(entities), // alle Entities aus index.ts
+  migrations: ['build/migrations/*.js'],
+} as PostgresConnectionOptions);
