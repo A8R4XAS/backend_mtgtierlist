@@ -53,7 +53,7 @@ export class UserController {
     const user = await User.findOneBy({ id: ctx.request.params.id });
     if (!user) return new HttpResponseNotFound('No such user');
 
-    return new HttpResponseOK(user);
+    return new HttpResponseOK({'id' : user.id, 'name': user.name, 'email': user.email});
   }
 
   @Put('/:id')
