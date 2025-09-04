@@ -8,7 +8,7 @@
     "postgres:start": "postgres.bat start",
     "postgres:stop": "postgres.bat stop",
     "build": "npx foal rmdir build && tsc -p tsconfig.app.json",
-    "start": "npm run postgres:start && node ./build/index.js",
+    "start": "node ./build/index.js",
     "dev": "npm run postgres:start && npm run build && concurrently -r \"tsc -p tsconfig.app.json -w\" \"supervisor -w ./build,./config -e js,json,yml --no-restart-on error ./build/index.js\"",
     "build:test": "npx foal rmdir build && tsc -p tsconfig.test.json",
     "start:test": "npm run postgres:start && mocha --file ./build/test.js \"./build/**/*.spec.js\"",
