@@ -1,7 +1,7 @@
 {
   "settings": {
     "cors": {
-      "allowedOrigins": "[\"https://<deine-render-frontend-domain>.onrender.com\"]"
+      "allowedOrigins": "[\"https://frontend-mtgtierlist.onrender.com\"]"
     },
     "session": {
       "secret": "env(SESSION_SECRET)"

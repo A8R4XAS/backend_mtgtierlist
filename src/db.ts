@@ -10,11 +10,11 @@ const env = process.env.SETTINGS_ENV?.toLowerCase() === 'production' ? 'producti
 
 const dbConfig: Partial<PostgresConnectionOptions> = {
   type: 'postgres',
-  host: env === 'production' ? process.env.DB_HOST : Config.get('database.host', 'string', 'localhost'),
+  host: env === 'production' ? process.env.DB_HOST : Config.get('database.host', 'string'),
   port: env === 'production' ? Number(process.env.DB_PORT) || 5432 : Config.get('database.port', 'number', 5432),
-  username: env === 'production' ? process.env.DB_USERNAME : Config.get('database.username', 'string', 'postgres'),
-  password: env === 'production' ? process.env.DB_PASSWORD : Config.get('database.password', 'string', ''),
-  database: env === 'production' ? process.env.DB_NAME : Config.get('database.database', 'string', 'mtgtierlist_local'),
+  username: env === 'production' ? process.env.DB_USERNAME : Config.get('database.username', 'string'),
+  password: env === 'production' ? process.env.DB_PASSWORD : Config.get('database.password', 'string'),
+  database: env === 'production' ? process.env.DB_NAME : Config.get('database.database', 'string'),
   synchronize:
     env === 'production'
       ? process.env.DB_SYNCHRONIZE === 'true'
