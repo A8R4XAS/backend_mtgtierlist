@@ -10,6 +10,14 @@ import { BaseEntity } from 'typeorm';
 
 //console.log('Database host (from Config):', Config.get('database.host'));
 
+console.log('Render env test:');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_USERNAME:', process.env.DB_USERNAME);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
+console.log('DB_NAME:', process.env.DB_NAME);
+
+
 const corsPreMiddleware = (req: any, res: any, next: any) => {
   const allowedOriginsStr = Config.get('settings.cors.allowedOrigins', 'string', '[]');
   const allowedOrigins: string[] = JSON.parse(allowedOriginsStr);
