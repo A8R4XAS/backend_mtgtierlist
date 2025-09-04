@@ -5,7 +5,8 @@ import * as entities from './app/entities';
 import { DatabaseSession } from '@foal/typeorm';
 
 // Prod vs Dev erkennen
-const env = process.env.SETTINGS_ENV || 'development';
+const env = process.env.SETTINGS_ENV?.toLowerCase() === 'production' ? 'production' : 'development';
+
 
 const dbConfig: Partial<PostgresConnectionOptions> = {
   type: 'postgres',
