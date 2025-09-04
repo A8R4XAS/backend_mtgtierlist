@@ -11,8 +11,11 @@ import { BaseEntity } from 'typeorm';
 console.log('Database host (from Config):', Config.get('database.host'));
 
 const corsPreMiddleware = (req: any, res: any, next: any) => {
+  const allowedOriginsStr = Config.get('settings.cors.allowedOrigins', 'string', '[]');
+  const allowedOrigins: string[] = JSON.parse(allowedOriginsStr);
+
   const origin = req.headers.origin;
-  if (origin === 'http://localhost:5173') {
+  if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Credentials', 'true');
