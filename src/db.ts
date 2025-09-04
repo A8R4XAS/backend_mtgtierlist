@@ -21,6 +21,8 @@ const dbConfig: Partial<PostgresConnectionOptions> = {
   ssl: env === 'production' ? { rejectUnauthorized: false } : undefined, // Render Postgres SSL
 };
 
+console.log('Database config:', { ...dbConfig});
+
 export const dataSource = new DataSource({
   ...dbConfig,
   entities: [...Object.values(entities), DatabaseSession],
