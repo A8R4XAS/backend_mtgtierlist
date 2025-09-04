@@ -18,8 +18,6 @@ const dbConfig: Partial<PostgresConnectionOptions> = {
   ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : undefined, // SSL nur wenn DB_HOST gesetzt (Prod)
 };
 
-console.log('Database config:', dbConfig);
-
 export const dataSource = new DataSource({
   ...dbConfig,
   entities: [...Object.values(entities), DatabaseSession],

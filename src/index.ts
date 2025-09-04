@@ -18,6 +18,7 @@ console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
 console.log('DB_NAME:', process.env.DB_NAME);
 
 
+
 const corsPreMiddleware = (req: any, res: any, next: any) => {
   const allowedOriginsStr = Config.get('settings.cors.allowedOrigins', 'string', '[]');
   const allowedOrigins: string[] = JSON.parse(allowedOriginsStr);
