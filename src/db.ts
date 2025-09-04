@@ -1,22 +1,24 @@
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { Config } from '@foal/core';
 import * as entities from './app/entities';
 import { DatabaseSession } from '@foal/typeorm';
+import { Config } from '@foal/core';
 
-// db.ts jetzt ohne Dev/Prod Unterscheidung, alles kommt aus Config/Env
+// DB Config: erst process.env, dann Foal Config, dann Default-Fallback
 const dbConfig: Partial<PostgresConnectionOptions> = {
   type: 'postgres',
-  host: Config.get('database.host', 'string'),
-  port: Config.get('database.port', 'number'),
-  username: Config.get('database.username', 'string'),
-  password: Config.get('database.password', 'string'),
-  database: Config.get('database.database', 'string'),
-  synchronize: Config.get('database.synchronize', 'boolean'),
-  ssl: process.env.SETTINGS_ENV === 'production' ? { rejectUnauthorized: false } : undefined, // SSL nur in Prod
+  host: process.env.DB_HOST || Config.get('database.host', 'string', 'localhost'),
+  port: Number(process.env.DB_PORT || Config.get('database.port', 'number', 5432)),
+  username: process.env.DB_USERNAME || Config.get('database.username', 'string', 'postgres'),
+  password: process.env.DB_PASSWORD || Config.get('database.password', 'string', ''),
+  database: process.env.DB_NAME || Config.get('database.database', 'string', 'mtgtierlist_local'),
+  synchronize: process.env.DB_SYNCHRONIZE
+    ? process.env.DB_SYNCHRONIZE === 'true'
+    : Config.get('database.synchronize', 'boolean', true),
+  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : undefined, // SSL nur wenn DB_HOST gesetzt (Prod)
 };
 
-console.log('Database config:', { ...dbConfig });
+console.log('Database config:', dbConfig);
 
 export const dataSource = new DataSource({
   ...dbConfig,
