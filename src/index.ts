@@ -8,7 +8,7 @@ import { AppController } from './app/app.controller';
 import { dataSource } from './db';
 import { BaseEntity } from 'typeorm';
 
-console.log('Database host (from Config):', Config.get('database.host'));
+//console.log('Database host (from Config):', Config.get('database.host'));
 
 const corsPreMiddleware = (req: any, res: any, next: any) => {
   const allowedOriginsStr = Config.get('settings.cors.allowedOrigins', 'string', '[]');

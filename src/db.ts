@@ -8,7 +8,7 @@ import { DatabaseSession } from '@foal/typeorm';
 const env = process.env.SETTINGS_ENV || 'development';
 
 const dbConfig: Partial<PostgresConnectionOptions> = {
-  type: (env === 'production' ? process.env.DB_TYPE : Config.get('database.type', 'string', 'postgres')) as 'postgres',
+  type: 'postgres',
   host: env === 'production' ? process.env.DB_HOST : Config.get('database.host', 'string', 'localhost'),
   port: env === 'production' ? Number(process.env.DB_PORT) || 5432 : Config.get('database.port', 'number', 5432),
   username: env === 'production' ? process.env.DB_USERNAME : Config.get('database.username', 'string', 'postgres'),
