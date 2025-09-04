@@ -1,1 +1,10 @@
-{}
+{
+  "settings": {
+    "cors": {
+      "allowedOrigins": "[\"http://localhost:5173\"]"
+    }
+  },
+  "database": {
+    "synchronize": true
+  }
+}

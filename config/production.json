@@ -1,3 +1,14 @@
 {
-  
+  "settings": {
+    "cors": {
+      "allowedOrigins": "[\"https://<deine-render-frontend-domain>.onrender.com\"]"
+    },
+    "session": {
+      "secret": "env(SESSION_SECRET)"
+    }
+  },
+  "database": {
+    "url": "env(DATABASE_URL)",
+    "synchronize": false
+  }
 }
