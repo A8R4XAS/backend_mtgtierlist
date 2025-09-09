@@ -1,6 +1,6 @@
 import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from './user.entity.js';
-import { User_deck } from './user_deck.entity.js';
+import { User } from './user.entity';
+import { User_deck } from './user_deck.entity';
 
 @Entity()
 export class Deck extends BaseEntity {

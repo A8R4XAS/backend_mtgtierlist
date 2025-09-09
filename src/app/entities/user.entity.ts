@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BaseEntity, Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { User_deck } from './user_deck.entity.js';
-import { Deck } from './deck.entity.js';
+import { User_deck } from './user_deck.entity';
+import { Deck } from './deck.entity';
 
 @Entity()
 export class User extends BaseEntity {

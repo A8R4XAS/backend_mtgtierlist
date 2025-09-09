@@ -1,7 +1,7 @@
 import { BaseEntity, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from './user.entity.js';
-import { Deck } from './deck.entity.js';
-import { Game } from './game.entity.js';
+import { User } from './user.entity';
+import { Deck } from './deck.entity';
+import { Game } from './game.entity';
 
 @Entity()
 export class User_deck extends BaseEntity {
