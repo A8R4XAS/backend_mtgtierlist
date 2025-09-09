@@ -1,6 +1,5 @@
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import * as entities from './app/entities';
 import { DatabaseSession } from '@foal/typeorm';
 import { Config } from '@foal/core';
 
@@ -15,11 +14,15 @@ const dbConfig: Partial<PostgresConnectionOptions> = {
   synchronize: process.env.DB_SYNCHRONIZE
     ? process.env.DB_SYNCHRONIZE === 'true'
     : Config.get('database.synchronize', 'boolean', true),
-  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : undefined, // SSL nur wenn DB_HOST gesetzt (Prod)
+  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : undefined, // SSL nur wenn DB_HOST gesetzt (Prod
 };
+
+console.log(dbConfig);
 
 export const dataSource = new DataSource({
   ...dbConfig,
-  entities: [...Object.values(entities), DatabaseSession],
+  entities: ['build/app/entities/*.js*', DatabaseSession],
   migrations: ['build/migrations/*.js'],
+  logging: ['query', 'error', 'schema'],
+  migrationsRun: false,
 } as PostgresConnectionOptions);
