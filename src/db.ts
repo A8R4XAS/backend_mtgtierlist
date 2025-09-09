@@ -25,5 +25,4 @@ export const dataSource = new DataSource({
   migrations: ['build/migrations/*.js'],
   logging: ['query', 'error', 'schema'],
   migrationsRun: false,
-  synchronize: true
 } as PostgresConnectionOptions);
