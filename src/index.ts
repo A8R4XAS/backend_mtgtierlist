@@ -6,7 +6,6 @@ import { Config, createApp, Logger, ServiceManager } from '@foal/core';
 // App
 import { AppController } from './app/app.controller';
 import { dataSource } from './db';
-import { BaseEntity } from 'typeorm';
 
 
 const corsPreMiddleware = (req: any, res: any, next: any) => {
@@ -29,8 +28,13 @@ const corsPreMiddleware = (req: any, res: any, next: any) => {
 };
 
 async function main() {
-  await dataSource.initialize();
-  BaseEntity.useDataSource(dataSource);
+
+  dataSource.initialize()
+  .then(() => {
+    console.log('DB synced');
+  })
+  .catch(err => console.error('DB error:', err));
+
 
   const serviceManager = new ServiceManager();
   const logger = serviceManager.get(Logger);
