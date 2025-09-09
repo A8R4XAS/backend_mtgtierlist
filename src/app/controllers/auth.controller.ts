@@ -39,7 +39,8 @@ export class AuthController {
       return new HttpResponseUnauthorized();
     }
 
-    ctx.session!.set('userId', user.id);
+    ctx.session!.setUser(user);
+
     ctx.user = user;
 
     return new HttpResponseOK({
