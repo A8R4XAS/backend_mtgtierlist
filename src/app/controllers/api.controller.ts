@@ -1,12 +1,12 @@
-import { Context, controller, Get, HttpResponseOK, UserRequired } from '@foal/core';
-import { DeckController, GameController, UserController, User_deckController } from './index';
+import { Context, controller, Get, HttpResponseOK } from '@foal/core';
+import { AuthController, DeckController, GameController, UserController, User_deckController } from './index';
 
-@UserRequired()
 export class ApiController {
 
   subControllers = [
     controller('/deck', DeckController),
     controller('/game', GameController),
+    controller('/auth', AuthController),
     controller('/user_deck', User_deckController),
     controller('/user', UserController)
   ];
