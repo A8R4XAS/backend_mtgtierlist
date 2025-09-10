@@ -66,23 +66,17 @@ export class AuthController {
       return new HttpResponseConflict({'error': 'Invalid signup request.'});
     }
 
-    let user = new User();
+    const user = new User();
     user.email = email;
     user.name = name;
     user.password = await hashPassword(password);
-    user = await user.save();
+    await user.save();
 
-    if (ctx.session) {
-      await ctx.session.regenerateID();
-      ctx.session.set('userId',user.id);
-    }
+    ctx.session!.setUser(user);
+    await ctx.session!.regenerateID();
 
-    ctx.user = user;
 
-    return new HttpResponseOK({
-      id: user.id,
-      name: user.name,
-    });
+    return new HttpResponseOK({});
   }
 
 }
