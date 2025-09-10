@@ -1,4 +1,4 @@
-import { Context, Delete, Get, HttpResponseBadRequest, HttpResponseCreated, HttpResponseNoContent, HttpResponseNotFound, HttpResponseOK, Post, ValidateBody } from '@foal/core';
+import { Context, Delete, Get, HttpResponseBadRequest, HttpResponseCreated, HttpResponseInternalServerError, HttpResponseNoContent, HttpResponseNotFound, HttpResponseOK, Post, ValidateBody } from '@foal/core';
 import { Deck , Game, User, User_deck, } from '../entities/index';
 
 
@@ -100,10 +100,24 @@ export class GameController {
 
   @Get('/:id')
   async getGame(ctx: Context) {
-    const game = await Game.find({ where: { id: ctx.request.params.id }, relations: ['user1', 'deck1', 'user2', 'deck2', 'user3', 'deck3', 'user4', 'deck4', 'winnerUser', 'winnerDeck'] });
-    if (!game) return new HttpResponseNotFound();
+    try {
+      const game = await Game.findOne({ 
+        where: { id: Number(ctx.request.params.id) }, 
+        relations: ['user1', 'deck1', 'user2', 'deck2', 'user3', 'deck3', 'user4', 'deck4', 'winnerUser', 'winnerDeck'] 
+      });
 
-    return new HttpResponseOK(game);
+      if (!game){
+        return new HttpResponseNotFound('Spiel nicht gefunden');
+      }
+      
+      return new HttpResponseOK(game);
+
+    } catch (error) {
+      console.error('Fehler beim Laden des Spiels:', error);
+      //return new HttpResponseInternalServerError(new Game());
+      return new HttpResponseInternalServerError('Serverfehler beim Laden des Spiels');
+    }
+
   }
 
   /*
