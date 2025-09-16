@@ -1,17 +1,22 @@
-import { controller, Get, HttpResponseOK, IAppController, UseSessions } from '@foal/core';
+import { controller, dependency, Get, HttpResponseOK, IAppController, Store, UseSessions } from '@foal/core';
 
-import { ApiController } from './controllers';
-import { TypeORMStore } from '@foal/typeorm';
+import { ApiController, AuthController } from './controllers';
+import { User } from './entities';
 
 @UseSessions({
   cookie: true,
-  store: TypeORMStore,
   csrf: false,
+  user: (id: number) => User.findOneBy({ id }),
 })
 
 export class AppController implements IAppController {
+
+  @dependency
+  store: Store;
+
   subControllers = [
-    controller('/api', ApiController),
+    controller('/api/auth', AuthController), // ⬅️ direkt hier
+    controller('/api', ApiController),       // ⬅️ enthält @UserRequired()
   ];
 
   @Get('/ping')
