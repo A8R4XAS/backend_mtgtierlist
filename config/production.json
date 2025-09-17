@@ -4,7 +4,11 @@
       "allowedOrigins": "[\"https://frontend-mtgtierlist.onrender.com\"]"
     },
     "session": {
-      "secret": "env(SESSION_SECRET)"
+      "secret": "env(SESSION_SECRET)",
+      "cookie": {
+        "secure": true,
+        "sameSite": "none"
+      }
     }
   },
   "database": {
