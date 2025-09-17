@@ -1,4 +1,4 @@
-import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, UseSessions, ValidateBody, verifyPassword } from '@foal/core';
+import { Context, hashPassword, HttpResponseConflict, HttpResponseOK, HttpResponseUnauthorized, Post, ValidateBody, verifyPassword } from '@foal/core';
 import { User } from '../entities/index';
 
 const credentialsSchema = {
@@ -22,7 +22,6 @@ const signUpSchema = {
   additionalProperties: false,
 };
 
-@UseSessions()
 export class AuthController {
 
   @Post('/login')
@@ -41,6 +40,7 @@ export class AuthController {
     }
 
     ctx.session!.setUser(user);
+    await ctx.session!.regenerateID();
 
     ctx.user = user;
 
@@ -53,7 +53,7 @@ export class AuthController {
   @Post('/logout')
   async logout(ctx: Context) {
     await ctx.session!.destroy();
-    return new HttpResponseNoContent();
+    return new HttpResponseOK();
   }
 
   @Post('/signup')

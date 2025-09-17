@@ -4,6 +4,7 @@ import { ApiController, AuthController } from './controllers';
 import { User } from './entities';
 
 @UseSessions({
+  cookie: true,
   csrf: false,
   user: (id: number) => User.findOneBy({ id }),
 })

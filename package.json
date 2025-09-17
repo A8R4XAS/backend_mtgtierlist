@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@foal/core": "^5.0.0",
+    "@foal/redis": "^5.0.1",
     "@foal/typeorm": "^5.0.1",
     "pg": "^8.16.3",
     "source-map-support": "~0.5.21",
