@@ -1,4 +1,4 @@
-import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, ValidateBody, verifyPassword } from '@foal/core';
+import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, UseSessions, ValidateBody, verifyPassword } from '@foal/core';
 import { User } from '../entities/index';
 
 const credentialsSchema = {
@@ -22,6 +22,7 @@ const signUpSchema = {
   additionalProperties: false,
 };
 
+@UseSessions()
 export class AuthController {
 
   @Post('/login')
