@@ -6,6 +6,7 @@ import { User } from './entities';
 @UseSessions({
   cookie: true,
   csrf: false,
+  redirectTo: '/login',
   user: (id: number) => User.findOneBy({ id }),
 })
 
