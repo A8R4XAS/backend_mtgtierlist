@@ -1,7 +1,7 @@
 import { BaseEntity, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Deck } from './deck.entity';
-import { Game } from './game.entity';
+import { Participation } from './participation.entity';
 
 @Entity()
 export class User_deck extends BaseEntity {
@@ -17,26 +17,7 @@ export class User_deck extends BaseEntity {
   @JoinColumn()
   deck: Deck;
 
-  //Games where this deck user combination was player 1
-  @OneToMany(() => Game, game => game.user_deck1)
-  games1: Game[];
-
-  //Games where this deck user combination was player 2
-  @OneToMany(() => Game, game => game.user_deck2)
-  games2: Game[];
-
-  //Games where this deck user combination was player 3
-  @OneToMany(() => Game, game => game.user_deck3)
-  games3: Game[];
-
-  //Games where this deck user combination was player 4
-  @OneToMany(() => Game, game => game.user_deck4)
-  games4: Game[];
-
-  //Games where this deck user combination was the winner
-  @OneToMany(() => Game, game => game.winner)
-  winner: Game[];
-
-  
+  @OneToMany(() => Participation, participation => participation.user_deck)
+  participations: Participation[];
 
 }

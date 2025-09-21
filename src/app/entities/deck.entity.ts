@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from './user.entity';
 import { User_deck } from './user_deck.entity';
+import { DeckEvaluation } from './Deck-evaluation.entity';
 
 @Entity()
 export class Deck extends BaseEntity {
@@ -41,6 +42,9 @@ export class Deck extends BaseEntity {
 
   @OneToMany(() => User_deck, user_deck => user_deck.deck,{ nullable: true })
   user_decks: User_deck[];
+
+  @OneToMany(() => DeckEvaluation, deck => deck.deck)
+  evaluations: DeckEvaluation[];
 
 }
 
