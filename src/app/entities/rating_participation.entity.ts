@@ -1,8 +1,9 @@
-import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { Participation } from './participation.entity';
 import { User } from './user.entity';
 
 @Entity()
+@Unique(['participation', 'rater']) // Unique Constraint hinzufügen
 export class Rating extends BaseEntity {
 
   @PrimaryGeneratedColumn()

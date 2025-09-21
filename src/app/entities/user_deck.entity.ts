@@ -1,9 +1,10 @@
-import { BaseEntity, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { User } from './user.entity';
 import { Deck } from './deck.entity';
 import { Participation } from './participation.entity';
 
 @Entity()
+@Unique(['user', 'deck']) // A user can be in a specific combination with a deck only once
 export class User_deck extends BaseEntity {
 
   @PrimaryGeneratedColumn()

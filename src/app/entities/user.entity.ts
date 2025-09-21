@@ -2,7 +2,7 @@
 import { BaseEntity, Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User_deck } from './user_deck.entity';
 import { Deck } from './deck.entity';
-import { Rating } from './rating_deck.entity';
+import { Rating } from './rating_participation.entity';
 import { DeckEvaluation } from './Deck-evaluation.entity';
 
 @Entity()

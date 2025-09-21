@@ -2,7 +2,7 @@
 import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Game } from './game.entity';
 import { User_deck } from './user_deck.entity';
-import { Rating } from './rating_deck.entity';
+import { Rating } from './rating_participation.entity';
 
 @Entity()
 export class Participation extends BaseEntity {
