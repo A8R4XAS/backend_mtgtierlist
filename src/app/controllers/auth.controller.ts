@@ -1,5 +1,5 @@
-import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, UseSessions, ValidateBody, verifyPassword } from '@foal/core';
-import { User } from '../entities/index';
+import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, UseSessions, ValidateBody, verifyPassword, Get } from '@foal/core';
+import { User, UserRole } from '../entities/index';
 
 const credentialsSchema = {
   type: 'object',
@@ -47,6 +47,7 @@ export class AuthController {
     return new HttpResponseOK({
       id: user.id,
       name: user.name,
+      role: user.role,
     });
   }
 
@@ -72,12 +73,35 @@ export class AuthController {
     user.email = email;
     user.name = name;
     user.password = await hashPassword(password);
+    // Bei der Registrierung wird standardmäßig die Rolle USER vergeben
+    user.role = UserRole.USER;
     await user.save();
 
     ctx.session!.setUser(user);
     await ctx.session!.regenerateID();
 
     return new HttpResponseOK({});
+  }
+
+  @Get('/validate-role')
+  async validateRole(ctx: Context) {
+    // Überprüfe, ob der Benutzer eingeloggt ist
+    if (!ctx.user) {
+      return new HttpResponseUnauthorized();
+    }
+
+    // Hole den aktuellen Benutzer aus der Datenbank
+    const user = await User.findOne({
+      where: { id: ctx.user.id },
+      select: ['role'] // Nur die Rolle wird benötigt
+    });
+
+    if (!user) {
+      return new HttpResponseUnauthorized();
+    }
+
+    // Gib die Rolle zurück
+    return new HttpResponseOK({ role: user.role });
   }
 
 }

@@ -5,6 +5,11 @@ import { Deck } from './deck.entity';
 import { Rating } from './rating_participation.entity';
 import { DeckEvaluation } from './Deck-evaluation.entity';
 
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin'
+}
+
 @Entity()
 export class User extends BaseEntity {
 
@@ -19,6 +24,13 @@ export class User extends BaseEntity {
 
   @Column()
   name: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER
+  })
+  role: UserRole;
 
   // a User can have many Decks
   @OneToMany(() => Deck, deck => deck.owner)
