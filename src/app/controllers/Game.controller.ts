@@ -39,9 +39,7 @@ export class GameController {
         where: { id: Number(ctx.request.params.id) },
         relations: ['participations']
       });
-      if (!game) {
-        return new HttpResponseNotFound('Spiel nicht gefunden');
-      }
+      if (!game) return new HttpResponseOK([]);
       return new HttpResponseOK(game);
     } catch (error) {
       console.error('Fehler beim Laden des Spiels:', error);
