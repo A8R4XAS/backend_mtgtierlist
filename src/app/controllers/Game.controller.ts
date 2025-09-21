@@ -47,4 +47,24 @@ export class GameController {
     }
   }
 
+  @Get('/user/:userId')
+  async getGamesByUser(ctx: Context) {
+    try {
+      const userId = Number(ctx.request.params.userId);
+      
+      // Spiele mit Teilnahmen laden, bei denen der angegebene Benutzer beteiligt ist
+      const games = await Game.createQueryBuilder('game')
+        .leftJoinAndSelect('game.participations', 'participation')
+        .leftJoinAndSelect('participation.user_deck', 'user_deck')
+        .leftJoinAndSelect('user_deck.user', 'user')
+        .where('user.id = :userId', { userId })
+        .getMany();
+
+      return new HttpResponseOK(games);
+    } catch (error) {
+      console.error('Fehler beim Laden der Spiele des Benutzers:', error);
+      return new HttpResponseInternalServerError('Serverfehler beim Laden der Spiele');
+    }
+  }
+
 }
