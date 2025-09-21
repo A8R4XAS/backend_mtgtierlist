@@ -5,7 +5,7 @@ export class User_deckController {
 
   @Get('/')
   async getUser_Decks() {
-    const user_deck = await User_deck.find({relations: ['user', 'deck']});
+    const user_deck = await User_deck.find({relations: ['user', 'deck', 'participations']});
     return new HttpResponseOK(user_deck);
   }
 
@@ -63,11 +63,18 @@ export class User_deckController {
   @Get('/:id')
   @ValidatePathParam('id', { type: 'number' })
   async getUser_Deck(ctx: Context) {
-    const user_deck = await User_deck.findOne({ where: { id: ctx.request.params.id }, relations: ['user', 'deck'] });
-
+    const user_deck = await User_deck.findOne({ where: { id: ctx.request.params.id }, relations: ['user', 'deck', 'participations'] });
     if (!user_deck) return new HttpResponseNotFound();
-
     return new HttpResponseOK(user_deck);
+  }
+
+
+
+  @Get('/:id/participations')
+  async getParticipationsForUserDeck(ctx: Context) {
+    const userDeck = await User_deck.findOne({ where: { id: ctx.request.params.id }, relations: ['participations'] });
+    if (!userDeck) return new HttpResponseNotFound();
+    return new HttpResponseOK(userDeck.participations);
   }
 
 
