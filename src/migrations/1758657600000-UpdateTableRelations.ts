@@ -14,10 +14,9 @@ export class UpdateTableRelations1758657600000 implements MigrationInterface {
                     "id" SERIAL PRIMARY KEY,
                     "is_winner" boolean NOT NULL DEFAULT false,
                     "game_id" integer,
-                    "user_id" integer,
-                    "deck_id" integer,
+                    "user_deck_id" integer,
                     CONSTRAINT "fk_game" FOREIGN KEY ("game_id") REFERENCES "game"("id"),
-                    CONSTRAINT "fk_user_deck" FOREIGN KEY ("user_id", "deck_id") REFERENCES "user_deck"("user_id", "deck_id")
+                    CONSTRAINT "fk_user_deck" FOREIGN KEY ("user_deck_id") REFERENCES "user_deck"("id")
                 );
 
                 -- Rating Tabelle neu erstellen
@@ -34,7 +33,7 @@ export class UpdateTableRelations1758657600000 implements MigrationInterface {
 
                 -- Indizes für bessere Performance
                 CREATE INDEX "idx_participation_game" ON "participation"("game_id");
-                CREATE INDEX "idx_participation_user_deck" ON "participation"("user_id", "deck_id");
+                CREATE INDEX "idx_participation_user_deck" ON "participation"("user_deck_id");
                 CREATE INDEX "idx_rating_participation" ON "rating"("participation_id");
                 CREATE INDEX "idx_rating_rater" ON "rating"("rater_id");
             END $$;
