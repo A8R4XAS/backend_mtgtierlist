@@ -4,9 +4,6 @@ export class AddAllMissingColumns1758657300000 implements MigrationInterface {
     name = 'AddAllMissingColumns1758657300000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Game Entity
-        await queryRunner.query(`ALTER TABLE "game" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-
         // Deck Entity
         await queryRunner.query(`
             DO $$ 
