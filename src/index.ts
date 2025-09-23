@@ -2,6 +2,7 @@ import 'source-map-support/register';
 
 // 3p
 import { Config, createApp, Logger, ServiceManager } from '@foal/core';
+import { DataSource } from 'typeorm';
 
 // App
 import { AppController } from './app/app.controller';
@@ -37,9 +38,10 @@ async function main() {
 
 
   const serviceManager = new ServiceManager();
+  serviceManager.set(DataSource, dataSource);
   const logger = serviceManager.get(Logger);
 
-  const app = await createApp( AppController,{ serviceManager, preMiddlewares: [corsPreMiddleware]});
+  const app = await createApp(AppController, { serviceManager, preMiddlewares: [corsPreMiddleware] });
 
   const port = Config.get('port', 'number', 3001);
   app.listen(port, () => logger.info(`Listening on port ${port}...`));

@@ -4,7 +4,7 @@
  * von zuvor erstellten Backups.
  */
 
-import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post } from '@foal/core';
+import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post, dependency } from '@foal/core';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 // Import der Entity-Definitionen für alle Datenbanktabellen
@@ -29,7 +29,8 @@ export class BackupController {
   private readonly BACKUP_DIR = 'backups';
   
   // Die DataSource-Instanz für Datenbankoperationen
-  constructor(private dataSource: DataSource) {}
+  @dependency
+  private dataSource: DataSource;
 
   /**
    * Exportiert alle Daten aus der Datenbank als ZIP-Archiv von CSV-Dateien

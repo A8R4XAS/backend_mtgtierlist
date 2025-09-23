@@ -1,6 +1,6 @@
 import { controller, dependency, Get, HttpResponseOK, IAppController, Store, UseSessions } from '@foal/core';
 
-import { ApiController, AuthController } from './controllers';
+import { ApiController, AuthController, BackupController } from './controllers';
 import { User } from './entities';
 
 @UseSessions({
@@ -18,6 +18,7 @@ export class AppController implements IAppController {
   subControllers = [
     controller('/api/auth', AuthController), // ⬅️ direkt hier
     controller('/api', ApiController),       // ⬅️ enthält @UserRequired()
+    controller('/api/backup', BackupController),
   ];
 
   @Get('/ping')
