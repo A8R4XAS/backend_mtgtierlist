@@ -1,0 +1,65 @@
+# Name der Workflow-Datei, erscheint in der GitHub Actions UI
+name: Database Backup
+
+# Definiert, wann dieser Workflow ausgeführt werden soll
+on:
+  # Zeitplan für automatische Ausführung
+  schedule:
+    # Cron-Syntax: Minute Stunde Tag Monat Wochentag
+    # '0 0 * * *' bedeutet: Jeden Tag um 00:00 UTC
+    - cron: '0 0 * * *'
+  
+  # Ermöglicht manuelle Ausführung über die GitHub UI
+  # Nützlich für Tests oder wenn ein sofortiges Backup benötigt wird
+  workflow_dispatch:
+
+# Definition der auszuführenden Jobs
+jobs:
+  # Ein Job namens "backup" wird definiert
+  backup:
+    # Legt fest, auf welchem Betriebssystem der Job ausgeführt wird
+    # ubuntu-latest ist kostenlos und für die meisten Zwecke ausreichend
+    runs-on: ubuntu-latest
+    
+    # Liste der Schritte, die nacheinander ausgeführt werden
+    steps:
+      # Schritt 1: Repository auschecken
+      # Dies stellt sicher, dass wir Zugriff auf unsere Skripte und Konfigurationen haben
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      # Schritt 2: Node.js installieren
+      # Unser Backup-Tool benötigt Node.js, um zu funktionieren
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          # Verwendet die aktuelle LTS-Version von Node.js
+          node-version: '18'
+          
+      # Schritt 3: Projekt-Abhängigkeiten installieren
+      # Installiert alle notwendigen npm-Pakete für unser Backup-Tool
+      - name: Install dependencies
+        run: npm install
+          
+      # Schritt 4: Backup durchführen
+      # Führt das eigentliche Backup aus und speichert es im backups/-Verzeichnis
+      - name: Create backup
+        run: node src/scripts/backup-cli.js backup
+        env:
+          # Die API-URL wird aus den GitHub Secrets gelesen
+          # Dies hält sensible Informationen sicher und außerhalb des Codes
+          # Muss in den Repository-Einstellungen konfiguriert werden
+          VITE_API_BASE_URL: ${{ secrets.API_URL }}
+          
+      # Schritt 5: Backup als GitHub Artifact speichern
+      # Artifacts sind Dateien, die von einem Workflow erzeugt und gespeichert werden
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          # Name des Artifacts in der GitHub UI
+          name: database-backup
+          # Welche Dateien sollen gespeichert werden
+          path: backups/
+          # Aufbewahrungsdauer der Backups (7 Tage)
+          # Nach dieser Zeit werden sie automatisch gelöscht
+          retention-days: 7
