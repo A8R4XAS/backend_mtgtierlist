@@ -15,10 +15,7 @@ export class Participation extends BaseEntity {
   game: Game;
 
   @ManyToOne(() => User_deck, user_deck => user_deck.participations)
-  @JoinColumn([
-    { name: 'user_id', referencedColumnName: 'user_id' },
-    { name: 'deck_id', referencedColumnName: 'deck_id' }
-  ])
+  @JoinColumn({ name: 'user_deck_id', referencedColumnName: 'id' })
   userDeck: User_deck;
 
   //Rating
