@@ -13,8 +13,8 @@ export class Rating extends BaseEntity {
   @JoinColumn({ name: 'participation_id' })
   participation: Participation;
 
-  @ManyToOne(() =>  User, user => user.ratings)
-  @JoinColumn({ name: 'user_id' })
+  @ManyToOne(() => User, user => user.ratings)
+  @JoinColumn({ name: 'rater_id' })
   rater: User;
 
   @Column({type: 'int'})

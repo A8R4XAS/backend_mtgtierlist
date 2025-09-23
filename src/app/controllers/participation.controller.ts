@@ -61,7 +61,7 @@ export class ParticipationController {
       const gameExist = await Game.findOneByOrFail({ id: game });
 
       const participation = new Participation();
-      participation.user_deck = user_deck;
+      participation.userDeck = user_deck;
       participation.game = gameExist;
       participation.is_winner = ctx.request.body.is_winner || false;
 
@@ -91,7 +91,7 @@ export class ParticipationController {
     const { is_Winner, game, user_deck } = ctx.request.body;
     entity.is_winner = is_Winner !== undefined ? is_Winner : entity.is_winner;
     entity.game = game ? await Game.findOneByOrFail({ id: game }) : entity.game;
-    entity.user_deck = user_deck ? await User_deck.findOneByOrFail({ id: user_deck }) : entity.user_deck;
+    entity.userDeck = user_deck ? await User_deck.findOneByOrFail({ id: user_deck }) : entity.userDeck;
     await entity.save();
     return new HttpResponseOK(entity);
   }
@@ -130,7 +130,7 @@ export class ParticipationController {
         const user_deck = await check(item.user, item.deck);
         const gameExist = await Game.findOneByOrFail({ id: item.game });
         const participation = new Participation();
-        participation.user_deck = user_deck;
+        participation.userDeck = user_deck;
         participation.game = gameExist;
         participation.is_winner = item.is_winner || false;
         await participation.save();

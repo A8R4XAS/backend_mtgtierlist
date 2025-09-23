@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Game } from './game.entity';
 import { User_deck } from './user_deck.entity';
 import { Rating } from './rating_participation.entity';
@@ -11,10 +11,15 @@ export class Participation extends BaseEntity {
   id: number;
 
   @ManyToOne(() => Game, game => game.participations)
+  @JoinColumn({ name: 'game_id' })
   game: Game;
 
   @ManyToOne(() => User_deck, user_deck => user_deck.participations)
-  user_deck: User_deck;
+  @JoinColumn([
+    { name: 'user_id', referencedColumnName: 'userId' },
+    { name: 'deck_id', referencedColumnName: 'deckId' }
+  ])
+  userDeck: User_deck;
 
   //Rating
   @OneToMany(() => Rating, rating => rating.participation)
