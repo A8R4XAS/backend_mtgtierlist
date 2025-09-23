@@ -53,8 +53,20 @@ export class AddAllMissingColumns1758657300000 implements MigrationInterface {
         await queryRunner.query(`
             DO $$ 
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'participation' AND column_name = 'is_winner') THEN
-                    ALTER TABLE "participation" ADD "is_winner" boolean NOT NULL DEFAULT false;
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' AND table_name = 'participation'
+                ) THEN
+                    CREATE TABLE "participation" (
+                        "id" SERIAL PRIMARY KEY,
+                        "is_winner" boolean NOT NULL DEFAULT false,
+                        "game_id" integer,
+                        "user_id" integer,
+                        "deck_id" integer,
+                        CONSTRAINT "fk_game" FOREIGN KEY ("game_id") REFERENCES "game"("id"),
+                        CONSTRAINT "fk_user_participation" FOREIGN KEY ("user_id") REFERENCES "user"("id"),
+                        CONSTRAINT "fk_deck_participation" FOREIGN KEY ("deck_id") REFERENCES "deck"("id")
+                    );
                 END IF;
             END $$;
         `);
