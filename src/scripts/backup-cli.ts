@@ -1,194 +1,296 @@
-#!/usr/bin/env node
+// 3p
+import { Logger, ServiceManager } from '@foal/core';
+import { type DataSourceOptions } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
+import { unparse, parse } from 'papaparse';
+import * as AdmZip from 'adm-zip';
 
-/**
- * MTG Tierlist Backup CLI Tool
- * 
- * Dieses Command-Line-Interface (CLI) Tool ermöglicht das Erstellen und Wiederherstellen
- * von Datenbank-Backups für die MTG Tierlist Anwendung. Es bietet folgende Funktionen:
- * 
- * - Manuelles Erstellen von Backups (CSV oder SQL)
- * - Wiederherstellen von Backups
- * - Planen automatischer Backups
- * - Automatisches Löschen alter Backups
- */
+// App
+import { dataSource } from '../db';
+import { User, Game, Deck, Rating, Participation, User_deck } from '../app/entities';
 
-import * as fs from 'fs';                   // Für Dateisystemoperationen
-import * as FormData from 'form-data';      // Für das Hochladen von Dateien
-import fetch from 'node-fetch';             // Für HTTP-Anfragen
-import { Readable } from 'stream';          // Für Stream-Verarbeitung
-import * as path from 'path';               // Für Pfadmanipulation
-import { Command } from 'commander';         // Für die CLI-Befehlsverarbeitung
-import * as cron from 'node-cron';          // Für geplante Backups
+// Typen für CSV-Parsing und Datenbank
+type EntityConstructor = typeof User | typeof Game | typeof Deck | typeof Rating | typeof Participation | typeof User_deck;
 
-// API-URL für den Backend-Server, kann über Umgebungsvariable überschrieben werden
-const API_URL = process.env.VITE_API_BASE_URL || 'http://localhost:3000';
-// Pfad zum Backup-Verzeichnis, relativ zum Skript-Verzeichnis
-const BACKUP_DIR = path.join(__dirname, '../backups');
-// Erstelle eine neue Command-Instanz für die CLI-Befehle
-const program = new Command();
-
-/**
- * Interface für die Backup-Optionen
- * @property type - Art des Backups (CSV oder SQL)
- * @property interval - Cron-Ausdruck für geplante Backups
- */
-interface BackupOptions {
-  type?: 'csv' | 'sql';     // Art des Backups
-  interval?: string;        // Zeitplan für automatische Backups
+// Record-Typ für CSV-Daten
+interface CSVRecord {
+    [key: string]: string | null;
 }
 
-// Stelle sicher, dass das Backup-Verzeichnis existiert
-if (!fs.existsSync(BACKUP_DIR)) {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+// Hilfsfunktion zum sicheren Fehlerhandling
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
 }
+
+// Konfiguration aus der Datenquelle extrahieren
+function getDatabaseConfig(options: DataSourceOptions): { host: string; port: number; database: string; username: string; password: string; } {
+    return {
+        host: (options as any).host || 'localhost',
+        port: (options as any).port || 5432,
+        database: (options as any).database as string || 'postgres',
+        username: (options as any).username || 'postgres',
+        password: (options as any).password || ''
+    };
+}
+
+// Schema für die CLI-Parameter
+export const schema = {
+    properties: {
+        type: { type: 'string', enum: ['csv', 'sql'], default: 'csv' },
+        operation: { type: 'string', enum: ['backup', 'restore'] },
+        file: { type: 'string' }
+    },
+    type: 'object'
+};
+
+// Backup-Verzeichnis relativ zum Projektroot
+const BACKUP_DIR = 'backups';
 
 /**
- * Lädt ein Backup von der API herunter und speichert es lokal
- * @param type - Art des Backups ('csv' oder 'sql')
- * @returns Promise mit dem Pfad zur gespeicherten Backup-Datei
+ * Hauptfunktion des Backup-Tools
  */
-async function downloadBackup(type: BackupOptions['type'] = 'csv') {
-  // Erstelle einen Zeitstempel für den Dateinamen
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  // Wähle den richtigen API-Endpunkt je nach Backup-Typ
-  const endpoint = type === 'sql' ? '/backup/sql-dump' : '/backup/export';
-  // Wähle die richtige Dateiendung je nach Backup-Typ
-  const extension = type === 'sql' ? 'sql' : 'zip';
-  
-  try {
-    // Lade das Backup von der API herunter
-    const response = await fetch(`${API_URL}${endpoint}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    if (!response.body) {
-      throw new Error('Response body is empty');
-    }
+export async function main(args: { operation: string, type?: string, file?: string }, services: ServiceManager, logger: Logger) {
+    // Initialisiere die Datenbankverbindung
+    await dataSource.initialize();
 
-    const filePath = path.join(BACKUP_DIR, `backup_${timestamp}.${extension}`);
-    const fileStream = fs.createWriteStream(filePath);
-    
-    await new Promise((resolve, reject) => {
-      // Konvertiere den Response body in einen Readable Stream
-      const responseBody = Readable.fromWeb(response.body as any);
-      responseBody.pipe(fileStream);
-      fileStream.on('finish', () => {
-        console.log(`Backup saved to ${filePath}`);
-        resolve(filePath);
-      });
-      fileStream.on('error', reject);
-    });
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Backup failed:', error.message);
-    } else {
-      console.error('Backup failed with unknown error');
-    }
-    throw error;
-  }
-}
-
-/**
- * Stellt ein Backup wieder her, indem es die Backup-Datei an die API sendet
- * @param filePath - Pfad zur lokalen Backup-Datei
- */
-async function restoreBackup(filePath: string) {
-  try {
-    // Erstelle ein FormData-Objekt für den Datei-Upload
-    const formData = new FormData();
-    // Füge die Backup-Datei dem FormData hinzu
-    formData.append('backup', fs.createReadStream(filePath));
-
-    // Sende die Datei an den Import-Endpunkt
-    const response = await fetch(`${API_URL}/backup/import`, {
-      method: 'POST',
-      body: formData,
-      headers: formData.getHeaders() // Füge die notwendigen Headers für Multipart-Formulardaten hinzu
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    console.log('Restore completed successfully');
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Restore failed:', error.message);
-    } else {
-      console.error('Restore failed with unknown error');
-    }
-    throw error;
-  }
-}
-
-// Konfiguration der CLI-Befehle
-program
-  .version('1.0.0')
-  .description('MTG Tierlist Database Backup Tool');
-
-// Befehl zum Erstellen eines Backups
-program
-  .command('backup')
-  .description('Create a backup of the database')
-  // Option für den Backup-Typ (standardmäßig CSV)
-  .option('-t, --type <type>', 'backup type (csv or sql)', 'csv')
-  // Handler für den Backup-Befehl
-  .action(async (options: BackupOptions) => {
     try {
-      await downloadBackup(options.type);
-    } catch (error: unknown) {
-      process.exit(1);
-    }
-  });
-
-program
-  .command('restore <file>')
-  .description('Restore database from a backup file')
-  .action(async file => {
-    try {
-      await restoreBackup(file);
-    } catch (error: unknown) {
-      process.exit(1);
-    }
-  });
-
-// Befehl zum Einrichten automatischer Backups
-program
-  .command('schedule')
-  .description('Schedule automatic backups')
-  // Option für den Backup-Zeitplan (Standard: täglich um Mitternacht)
-  .option('-i, --interval <cron>', 'cron schedule expression', '0 0 * * *')
-  // Option für den Backup-Typ (Standard: CSV)
-  .option('-t, --type <type>', 'backup type (csv or sql)', 'csv')
-  // Handler für den Schedule-Befehl
-  .action(options => {
-    console.log(`Scheduling automatic backups with cron: ${options.interval}`);
-    
-    cron.schedule(options.interval, async () => {
-      try {
-        await downloadBackup(options.type);
-        // Optional: Lösche alte Backups
-        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 Tage
-        const files = fs.readdirSync(BACKUP_DIR);
-        
-        for (const file of files) {
-          const filePath = path.join(BACKUP_DIR, file);
-          const stats = fs.statSync(filePath);
-          
-          if (Date.now() - stats.mtime.getTime() > maxAge) {
-            fs.unlinkSync(filePath);
-            console.log(`Deleted old backup: ${file}`);
-          }
+        // Stelle sicher, dass das Backup-Verzeichnis existiert
+        if (!fs.existsSync(BACKUP_DIR)) {
+            fs.mkdirSync(BACKUP_DIR, { recursive: true });
         }
-      } catch (error) {
-        console.error('Scheduled backup failed:', error);
-      }
-    });
-    
-    // Halte den Prozess am Laufen
-    process.stdin.resume();
-  });
 
-program.parse(process.argv);
+        const operation = args.operation.toLowerCase();
+        if (operation === 'backup') {
+            console.log('Starting backup operation...');
+            await createBackup(args.type || 'csv', logger);
+        } else if (operation === 'restore') {
+            if (!args.file) {
+                throw new Error('File parameter is required for restore operation');
+            }
+            const filePath = path.resolve(args.file);
+            console.log(`Starting restore operation from file: ${filePath}`);
+            await restoreBackup(filePath, logger);
+        } else {
+            throw new Error('Invalid operation');
+        }
+    } catch (error) {
+        logger.error('Operation failed: ' + getErrorMessage(error));
+        throw error;
+    } finally {
+        await dataSource.destroy();
+    }
+}
+
+/**
+ * Erstellt ein Backup der Datenbank
+ */
+async function createBackup(type: string, logger: Logger) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    
+    if (type === 'sql') {
+        await createSqlBackup(timestamp, logger);
+        return;
+    }
+
+    // Temporäres Verzeichnis für CSV-Dateien
+    const tempDir = path.join(BACKUP_DIR, `temp_${timestamp}`);
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    try {
+        // Liste aller zu sichernden Entitäten
+        const entities: { name: string; entity: EntityConstructor }[] = [
+            { name: 'users', entity: User },
+            { name: 'games', entity: Game },
+            { name: 'decks', entity: Deck },
+            { name: 'ratings', entity: Rating },
+            { name: 'participations', entity: Participation },
+            { name: 'user_decks', entity: User_deck }
+        ];
+
+        // Exportiere jede Entität als CSV
+        for (const { name, entity } of entities) {
+            const repository = dataSource.getRepository(entity);
+            const data = await repository.find();
+            const csv = unparse(data);
+            fs.writeFileSync(path.join(tempDir, `${name}.csv`), csv);
+            logger.info(`Exported ${name}`);
+        }
+
+        // Erstelle ZIP-Archiv
+        const zip = new AdmZip();
+        zip.addLocalFolder(tempDir);
+        const zipPath = path.join(BACKUP_DIR, `backup_${timestamp}.zip`);
+        zip.writeZip(zipPath);
+        logger.info(`Backup created: ${zipPath}`);
+
+        // Räume auf
+        fs.rmSync(tempDir, { recursive: true });
+    } catch (error) {
+        logger.error('Backup failed: ' + getErrorMessage(error));
+        throw error;
+    }
+}
+
+/**
+ * Erstellt ein SQL-Backup der Datenbank
+ */
+async function createSqlBackup(timestamp: string, logger: Logger) {
+    const { exec } = require('child_process');
+    const filename = path.join(BACKUP_DIR, `dump_${timestamp}.sql`);
+    const dbConfig = getDatabaseConfig(dataSource.options);
+    const command = `PGPASSWORD="${dbConfig.password}" pg_dump -h ${dbConfig.host} -p ${dbConfig.port} -U ${dbConfig.username} -d ${dbConfig.database} -F p > ${filename}`;
+    
+    return new Promise<string>((resolve, reject) => {
+        exec(command, (error: Error | null) => {
+            if (error) {
+                logger.error('SQL dump failed: ' + error.message);
+                reject(error);
+                return;
+            }
+            logger.info(`SQL backup created: ${filename}`);
+            resolve(filename);
+        });
+    });
+}
+
+/**
+ * Stellt ein Backup wieder her
+ */
+async function restoreBackup(filePath: string, logger: Logger) {
+    try {
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Backup file not found: ${filePath}`);
+        }
+
+        if (path.extname(filePath) === '.sql') {
+            await restoreSqlBackup(filePath, logger);
+            return;
+        }
+
+        // Entpacke ZIP-Archiv
+        const tempDir = path.join(BACKUP_DIR, 'temp_restore');
+        if (fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true });
+        }
+        fs.mkdirSync(tempDir, { recursive: true });
+        
+        logger.info(`Extracting backup from ${filePath}`);
+        const zip = new AdmZip(filePath);
+        zip.extractAllTo(tempDir, true);
+
+        // Überprüfe die extrahierten Dateien
+        const files = fs.readdirSync(tempDir);
+        logger.info(`Found ${files.length} files in backup`);
+
+        try {
+            // Lösche bestehende Daten mit CASCADE
+            logger.info('Clearing existing data...');
+            await dataSource.query('TRUNCATE TABLE "user_deck", "rating", "participation", "deck", "game", "user" CASCADE');
+
+            // Stelle Daten in der richtigen Reihenfolge wieder her
+            const entityOrder = [
+                { filename: 'users.csv', entity: User },
+                { filename: 'games.csv', entity: Game },
+                { filename: 'decks.csv', entity: Deck },
+                { filename: 'participations.csv', entity: Participation },
+                { filename: 'ratings.csv', entity: Rating },
+                { filename: 'user_decks.csv', entity: User_deck }
+            ];
+
+            for (const { filename, entity } of entityOrder) {
+                const csvPath = path.join(tempDir, filename);
+                if (fs.existsSync(csvPath)) {
+                    logger.info(`Restoring ${filename}`);
+                    const content = fs.readFileSync(csvPath, 'utf-8');
+                    const { data } = parse<CSVRecord>(content, { header: true });
+                    if (Array.isArray(data) && data.length > 0) {
+                        const repository = dataSource.getRepository(entity);
+                        const metadata = repository.metadata;
+                        
+                        // Konvertiere die Daten in Entity-Instanzen
+                        const entities = data.map(item => {
+                            // Erstelle eine neue Instanz der Entity
+                            const instance = new entity();
+                            
+                            // Konvertiere und setze die Werte
+                            for (const key in item) {
+                                const value = item[key];
+                                const column = metadata.findColumnWithPropertyName(key);
+                                
+                                if (column) {
+                                    // Konvertiere den Wert basierend auf dem Spaltentyp
+                                    if (value === 'null' || value === '') {
+                                        instance[key] = null;
+                                    } else if (column.type === Number || column.type === 'int' || column.type === 'integer') {
+                                        instance[key] = Number(value);
+                                    } else if (column.type === Boolean) {
+                                        instance[key] = value === 'true';
+                                    } else if (column.type === Date) {
+                                        instance[key] = value ? new Date(value) : null;
+                                    } else if (column.type === 'enum') {
+                                        instance[key] = value;
+                                    } else {
+                                        instance[key] = value;
+                                    }
+                                }
+                            }
+                            return instance;
+                        });
+
+                        // Speichere die Entities in Batches
+                        const batchSize = 50;
+                        for (let i = 0; i < entities.length; i += batchSize) {
+                            const batch = entities.slice(i, i + batchSize);
+                            try {
+                                await repository.save(batch);
+                                logger.info(`Restored batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(entities.length / batchSize)} for ${filename}`);
+                            } catch (error) {
+                                logger.error(`Error restoring batch: ${getErrorMessage(error)}`);
+                                throw error;
+                            }
+                        }
+                        
+                        logger.info(`Successfully restored ${data.length} records from ${filename}`);
+                    }
+                } else {
+                    logger.warn(`File ${filename} not found in backup`);
+                }
+            }
+
+            logger.info('Restore completed successfully');
+        } finally {
+            // Räume auf
+            if (fs.existsSync(tempDir)) {
+                fs.rmSync(tempDir, { recursive: true });
+            }
+        }
+    } catch (error) {
+        logger.error('Restore failed: ' + getErrorMessage(error));
+        throw error;
+    }
+}
+
+/**
+ * Stellt ein SQL-Backup wieder her
+ */
+async function restoreSqlBackup(filePath: string, logger: Logger) {
+    const { exec } = require('child_process');
+    const dbConfig = getDatabaseConfig(dataSource.options);
+    const command = `PGPASSWORD="${dbConfig.password}" psql -h ${dbConfig.host} -p ${dbConfig.port} -U ${dbConfig.username} -d ${dbConfig.database} < ${filePath}`;
+    
+    return new Promise<void>((resolve, reject) => {
+        exec(command, (error: Error | null) => {
+            if (error) {
+                logger.error('SQL restore failed: ' + error.message);
+                reject(error);
+                return;
+            }
+            logger.info('SQL restore completed successfully');
+            resolve();
+        });
+    });
+}
