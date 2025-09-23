@@ -11,11 +11,11 @@ export class User_deck extends BaseEntity {
   id: number;
 
   @ManyToOne(() => User, user => user.user_decks)
-  @JoinColumn()
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Deck, deck => deck.user_decks)
-  @JoinColumn()
+  @JoinColumn({ name: 'deck_id' })
   deck: Deck;
 
   @OneToMany(() => Participation, participation => participation.userDeck)
