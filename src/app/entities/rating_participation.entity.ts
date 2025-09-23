@@ -1,4 +1,4 @@
-import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { Participation } from './participation.entity';
 import { User } from './user.entity';
 
@@ -10,9 +10,11 @@ export class Rating extends BaseEntity {
   id: number;
 
   @ManyToOne(() => Participation, participation => participation.ratings)
+  @JoinColumn({ name: 'participation_id' })
   participation: Participation;
 
   @ManyToOne(() =>  User, user => user.ratings)
+  @JoinColumn({ name: 'user_id' })
   rater: User;
 
   @Column({type: 'int'})
