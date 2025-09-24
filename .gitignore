@@ -51,6 +51,7 @@ web_modules/
 backups/*.zip
 backups/*.sql
 backups/temp_*
+*.zip
 
 # Optional npm cache directory
 .npm
