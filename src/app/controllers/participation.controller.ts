@@ -30,14 +30,19 @@ async function check(user: number, deck: number): Promise<User_deck> {
 export class ParticipationController {
   @Get('/')
   async findAll() {
-    const items = await Participation.find();
+    const items = await Participation.find({
+      relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game']
+    });
     if (!items) return new HttpResponseOK([]);
     return new HttpResponseOK(items);
   }
 
   @Get('/:id')
   async findById(ctx: Context) {
-    const item = await Participation.findOneBy({ id: ctx.request.params.id });
+    const item = await Participation.findOne({
+      relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+      where: { id: ctx.request.params.id }
+    });
     if (!item) return new HttpResponseNoContent();
     return new HttpResponseOK(item);
   } 
@@ -102,6 +107,82 @@ export class ParticipationController {
     if (!entity) return new HttpResponseNoContent();
     await entity.remove();
     return new HttpResponseNoContent();
+  }
+
+  @Get('/game/:gameId')
+  async findByGame(ctx: Context) {
+    try {
+      const gameId = parseInt(ctx.request.params.gameId);
+      const participations = await Participation.find({
+        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        where: { game: { id: gameId } }
+      });
+      return new HttpResponseOK(participations);
+    } catch (error) {
+      console.log(error);
+      return new HttpResponseBadRequest(error);
+    }
+  }
+
+  @Get('/user/:userId')
+  async findByUser(ctx: Context) {
+    try {
+      const userId = parseInt(ctx.request.params.userId);
+      const participations = await Participation.find({
+        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        where: { user_deck: { user: { id: userId } } }
+      });
+      return new HttpResponseOK(participations);
+    } catch (error) {
+      console.log(error);
+      return new HttpResponseBadRequest(error);
+    }
+  }
+
+  @Get('/deck/:deckId')
+  async findByDeck(ctx: Context) {
+    try {
+      const deckId = parseInt(ctx.request.params.deckId);
+      const participations = await Participation.find({
+        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        where: { user_deck: { deck: { id: deckId } } }
+      });
+      return new HttpResponseOK(participations);
+    } catch (error) {
+      console.log(error);
+      return new HttpResponseBadRequest(error);
+    }
+  }
+
+  @Put('/:id/winner')
+  async setWinner(ctx: Context) {
+    try {
+      const participationId = parseInt(ctx.request.params.id);
+      const participation = await Participation.findOne({
+        relations: ['game'],
+        where: { id: participationId }
+      });
+      
+      if (!participation) {
+        return new HttpResponseNoContent();
+      }
+      
+      // Erst alle Teilnehmer des Spiels als Verlierer setzen
+      await Participation.createQueryBuilder()
+        .update(Participation)
+        .set({ is_winner: false })
+        .where('game = :gameId', { gameId: participation.game.id })
+        .execute();
+      
+      // Dann diesen Teilnehmer als Gewinner setzen
+      participation.is_winner = true;
+      await participation.save();
+      
+      return new HttpResponseOK(participation);
+    } catch (error) {
+      console.log(error);
+      return new HttpResponseBadRequest(error);
+    }
   }
   
   @Post('/bulk')
