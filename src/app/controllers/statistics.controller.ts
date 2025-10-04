@@ -1,5 +1,4 @@
 import { Context, Get, HttpResponseOK, HttpResponseBadRequest, UserRequired } from '@foal/core';
-import { getRepository } from 'typeorm';
 import { Participation } from '../entities';
 
 export interface MonthlyStatistics {
@@ -30,14 +29,12 @@ export class StatisticsController {
       if (isNaN(userId)) {
         return new HttpResponseBadRequest('Invalid user ID');
       }
-
-      const participationRepo = getRepository(Participation);
       
       // Hole alle Participations des Users aus den letzten 6 Monaten
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const participations = await participationRepo
+      const participations = await Participation
         .createQueryBuilder('participation')
         .leftJoinAndSelect('participation.game', 'game')
         .leftJoinAndSelect('participation.user_deck', 'user_deck')
@@ -46,6 +43,8 @@ export class StatisticsController {
         .andWhere('game.createdAt >= :sixMonthsAgo', { sixMonthsAgo })
         .orderBy('game.createdAt', 'DESC')
         .getMany();
+        
+      console.log(`Found ${participations.length} participations for user ${userId} in monthly stats`);
 
       // Gruppiere nach Monaten
       const monthlyStats: MonthlyStatistics[] = [];
@@ -78,7 +77,8 @@ export class StatisticsController {
 
     } catch (error) {
       console.error('Error fetching user monthly statistics:', error);
-      return new HttpResponseBadRequest('Failed to fetch statistics');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return new HttpResponseBadRequest(`Failed to fetch statistics: ${errorMessage}`);
     }
   }
 
@@ -90,14 +90,12 @@ export class StatisticsController {
       if (isNaN(userId)) {
         return new HttpResponseBadRequest('Invalid user ID');
       }
-
-      const participationRepo = getRepository(Participation);
       
       // Hole alle Participations des Users aus den letzten 6 Monaten
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const participations = await participationRepo
+      const participations = await Participation
         .createQueryBuilder('participation')
         .leftJoinAndSelect('participation.game', 'game')
         .leftJoinAndSelect('participation.user_deck', 'user_deck')
@@ -106,6 +104,8 @@ export class StatisticsController {
         .andWhere('game.createdAt >= :sixMonthsAgo', { sixMonthsAgo })
         .orderBy('game.createdAt', 'DESC')
         .getMany();
+        
+      console.log(`Found ${participations.length} participations for user ${userId} in chart-data`);
 
       // Erstelle Chart-Daten
       const labels: string[] = [];
@@ -154,7 +154,8 @@ export class StatisticsController {
 
     } catch (error) {
       console.error('Error fetching user chart data:', error);
-      return new HttpResponseBadRequest('Failed to fetch chart data');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return new HttpResponseBadRequest(`Failed to fetch chart data: ${errorMessage}`);
     }
   }
 
@@ -166,17 +167,17 @@ export class StatisticsController {
       if (isNaN(userId)) {
         return new HttpResponseBadRequest('Invalid user ID');
       }
-
-      const participationRepo = getRepository(Participation);
       
       // Hole alle Participations des Users
-      const participations = await participationRepo
+      const participations = await Participation
         .createQueryBuilder('participation')
         .leftJoinAndSelect('participation.game', 'game')
         .leftJoinAndSelect('participation.user_deck', 'user_deck')
         .leftJoinAndSelect('user_deck.user', 'user')
         .where('user.id = :userId', { userId })
         .getMany();
+        
+      console.log(`Found ${participations.length} total participations for user ${userId}`);
 
       const totalGames = participations.length;
       const wins = participations.filter(p => p.is_winner).length;
@@ -194,7 +195,8 @@ export class StatisticsController {
 
     } catch (error) {
       console.error('Error fetching user summary:', error);
-      return new HttpResponseBadRequest('Failed to fetch user summary');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return new HttpResponseBadRequest(`Failed to fetch user summary: ${errorMessage}`);
     }
   }
 }
