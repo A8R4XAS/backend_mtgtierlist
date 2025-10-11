@@ -148,12 +148,12 @@ export class BackupController {
       };
 
       // Lösche bestehende Daten in umgekehrter Reihenfolge der Abhängigkeiten
-      await this.dataSource.getRepository(User_deck).clear();
-      await this.dataSource.getRepository(Rating).clear();
-      await this.dataSource.getRepository(Participation).clear();
-      await this.dataSource.getRepository(Deck).clear();
-      await this.dataSource.getRepository(Game).clear();
-      await this.dataSource.getRepository(User).clear();
+      await User_deck.clear();
+      await Rating.clear();
+      await Participation.clear();
+      await Deck.clear();
+      await Game.clear();
+      await User.clear();
 
       // Importiere Daten in der richtigen Reihenfolge
       for (const [filename, Entity] of Object.entries(entityMap)) {
