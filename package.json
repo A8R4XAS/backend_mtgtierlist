@@ -27,7 +27,9 @@
     "migration:run": "npx typeorm migration:run -d build/db",
     "migration:revert": "npx typeorm migration:revert -d build/db",
     "migration:generate": "npx typeorm migration:generate src/migrations/migration -d build/db -p && tsc -p tsconfig.app.json",
-    "backup-cli": "ts-node src/scripts/backup-cli.ts"
+    "backup-cli": "ts-node src/scripts/backup-cli.ts",
+    "test:single": "npm run postgres:start && npm run build:test && mocha --file ./build/test.js",
+    "test:backup": "npm run test:single \"./build/app/controllers/backup.controller.spec.js\""
   },
   "engines": {
     "node": ">=22.0.0"
