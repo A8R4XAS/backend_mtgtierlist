@@ -22,7 +22,7 @@ describe('EvaluationController', () => {
 
     it('should return an HttpResponseOK.', () => {
       const ctx = new Context({});
-      ok(isHttpResponseOK(controller.foo(ctx)));
+      ok(isHttpResponseOK(controller.createEvaluation(ctx)));
     });
 
   });
