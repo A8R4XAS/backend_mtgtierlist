@@ -301,9 +301,29 @@ export class BackupController {
         const typedData = (data as Record<string, string>[]).map(item => {
           const typedItem: Record<string, any> = {};
           for (const [key, value] of Object.entries(item)) {
-            if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
+            // Behandle Foreign Key Spalten speziell
+            if (key === 'userId' && value && value.trim() !== '') {
+              typedItem['user'] = { id: Number(value) };
+            } else if (key === 'deckId' && value && value.trim() !== '') {
+              typedItem['deck'] = { id: Number(value) };
+            } else if (key === 'gameId' && value && value.trim() !== '') {
+              typedItem['game'] = { id: Number(value) };
+            } else if (key === 'userDeckId' && value && value.trim() !== '') {
+              typedItem['user_deck'] = { id: Number(value) };
+            } else if (key === 'participationId' && value && value.trim() !== '') {
+              typedItem['participation'] = { id: Number(value) };
+            } else if (key === 'raterId' && value && value.trim() !== '') {
+              typedItem['rater'] = { id: Number(value) };
+            } else if (key === 'ownerId' && value && value.trim() !== '') {
+              typedItem['owner'] = { id: Number(value) };
+            } else if (key === 'id' && value && value.trim() !== '') {
+              // Behalte Original-IDs bei um Foreign Key Konsistenz zu gewährleisten
+              typedItem[key] = Number(value);
+            } else if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
+              // Normale numerische Werte
               typedItem[key] = Number(value);
             } else {
+              // String-Werte oder NULL
               typedItem[key] = value === '' ? null : value;
             }
           }
@@ -311,7 +331,53 @@ export class BackupController {
         });
         
         if (typedData.length > 0) {
-          await this.dataSource.getRepository(Entity).save(typedData);
+          // Verwende rohe SQL INSERT um Original-IDs beizubehalten
+          if (filename === 'users.csv') {
+            for (const item of typedData) {
+              await this.dataSource.query(
+                'INSERT INTO "user"(id, email, password, name, role) VALUES ($1, $2, $3, $4, $5)',
+                [item.id, item.email, item.password, item.name, item.role]
+              );
+            }
+          } else if (filename === 'games.csv') {
+            for (const item of typedData) {
+              await this.dataSource.query(
+                'INSERT INTO "game"(id, "createdAt") VALUES ($1, $2)',
+                [item.id, item.createdAt]
+              );
+            }
+          } else if (filename === 'decks.csv') {
+            for (const item of typedData) {
+              await this.dataSource.query(
+                'INSERT INTO "deck"(id, commander, thema, gameplan, tempo, tier, weaknesses, "ownerId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                [item.id, item.commander, item.thema, item.gameplan, item.tempo, item.tier, item.weaknesses, item.owner?.id]
+              );
+            }
+          } else if (filename === 'user_decks.csv') {
+            for (const item of typedData) {
+              await this.dataSource.query(
+                'INSERT INTO "user_deck"(id, "userId", "deckId") VALUES ($1, $2, $3)',
+                [item.id, item.user?.id, item.deck?.id]
+              );
+            }
+          } else if (filename === 'participations.csv') {
+            for (const item of typedData) {
+              await this.dataSource.query(
+                'INSERT INTO "participation"(id, is_winner, "gameId", "userDeckId") VALUES ($1, $2, $3, $4)',
+                [item.id, item.is_winner, item.game?.id, item.user_deck?.id]
+              );
+            }
+          } else if (filename === 'ratings.csv') {
+            for (const item of typedData) {
+              await this.dataSource.query(
+                'INSERT INTO "rating"(id, value, "participationId", "raterId") VALUES ($1, $2, $3, $4)',
+                [item.id, item.value, item.participation?.id, item.rater?.id]
+              );
+            }
+          } else {
+            // Fallback für unbekannte Tabellen
+            await this.dataSource.getRepository(Entity).save(typedData);
+          }
           console.log(`✅ Imported ${typedData.length} records from ${filename}`);
         }
       } else {
