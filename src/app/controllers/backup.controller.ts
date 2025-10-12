@@ -5,6 +5,7 @@
  */
 
 import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post, dependency } from '@foal/core';
+import { ParseAndValidateFiles } from '@foal/storage';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 // Import der Entity-Definitionen für alle Datenbanktabellen
@@ -121,72 +122,139 @@ export class BackupController {
    * @returns Eine Erfolgsmeldung nach erfolgreicher Wiederherstellung
    */
   @Post('/import')
-  async importData(ctx: Context) {
+  @ParseAndValidateFiles({
+    backupFile: { required: true }
+  })
+  async importData(ctx: Context): Promise<HttpResponseOK | HttpResponseBadRequest> {
     try {
-      // Prüfe, ob eine Backup-Datei im Request vorhanden ist
-      const files = ctx.request.files;
-      if (!files || !files.backup) {
-        return new HttpResponseBadRequest('No backup file provided');
-      }
-
-      // Erstelle ein temporäres Verzeichnis für das Entpacken des Backups
-      const backupFile = files.backup;
-      const tempDir = path.join(this.BACKUP_DIR, 'temp_import');
+      console.log('📁 Starting file upload processing with FoalTS storage...');
       
-      // Extrahiere ZIP mit adm-zip
-      const zip = new AdmZip(backupFile.path);
-      zip.extractAllTo(tempDir, true); // true überschreibt existierende Dateien
+      // Mit @foal/storage ist die Datei jetzt verfügbar unter ctx.request.body.backupFile
+      const backupFile = ctx.request.body.backupFile;
+      console.log('📁 Backup file object:', backupFile);
 
-      // Importiere jede CSV-Datei
-      const entityMap = {
-        'users.csv': User,
-        'games.csv': Game,
-        'decks.csv': Deck,
-        'ratings.csv': Rating,
-        'participations.csv': Participation,
-        'user_decks.csv': User_deck
-      };
-
-      // Lösche bestehende Daten in umgekehrter Reihenfolge der Abhängigkeiten
-      await User_deck.clear();
-      await Rating.clear();
-      await Participation.clear();
-      await Deck.clear();
-      await Game.clear();
-      await User.clear();
-
-      // Importiere Daten in der richtigen Reihenfolge
-      for (const [filename, Entity] of Object.entries(entityMap)) {
-        const filePath = path.join(tempDir, filename);
-        if (fs.existsSync(filePath)) {
-          const csvContent = fs.readFileSync(filePath, 'utf-8');
-          const { data } = Papa.parse(csvContent, { header: true });
-          // Typ-Sicherheit für die importierten Daten
-          const typedData = (data as Record<string, string>[]).map(item => {
-            // Konvertiere Strings in die richtigen Typen
-            const typedItem: Record<string, any> = {};
-            for (const [key, value] of Object.entries(item)) {
-              if (typeof value === 'string' && !isNaN(Number(value))) {
-                typedItem[key] = Number(value);
-              } else {
-                typedItem[key] = value;
-              }
-            }
-            return typedItem;
-          });
-          await this.dataSource.getRepository(Entity).save(typedData);
-        }
+      if (!backupFile) {
+        console.log('❌ No backup file provided');
+        return new HttpResponseBadRequest({
+          message: 'No backup file provided. Make sure to use form-data with key "backupFile"'
+        });
       }
 
-      // Aufräumen
-      fs.rmSync(tempDir, { recursive: true });
+      // FoalTS Storage gibt uns ein File-Objekt mit path property
+      const filePath = backupFile.path;
+      console.log('📁 Processing file at path:', filePath);
 
-      return new HttpResponseOK({ message: 'Import successful' });
+      if (!filePath || !fs.existsSync(filePath)) {
+        return new HttpResponseBadRequest({
+          message: 'File path not found or file does not exist'
+        });
+      }
+
+      // Verarbeite das Backup
+      await this.processBackupImport(filePath);
+      
+      // Cleanup der temporären Datei
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (cleanupError) {
+        console.warn('⚠️ Could not cleanup file:', cleanupError);
+      }
+      
+      return new HttpResponseOK({ 
+        message: 'Import successful',
+        fileName: backupFile.filename || 'backup.zip'
+      });
 
     } catch (error) {
-      console.error('Import error:', error);
-      throw error;
+      console.error('❌ Import error:', error);
+      return new HttpResponseBadRequest({
+        message: 'Import failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
+  }
+
+  /**
+   * Verarbeitet die eigentliche Backup-Import-Logik
+   * @param zipFilePath Pfad zur hochgeladenen ZIP-Datei
+   */
+  private async processBackupImport(zipFilePath: string): Promise<void> {
+    console.log('🔄 Processing backup import from:', zipFilePath);
+    
+    // Erstelle das Backup-Verzeichnis und Temp-Verzeichnis, falls sie nicht existieren
+    if (!fs.existsSync(this.BACKUP_DIR)) {
+      fs.mkdirSync(this.BACKUP_DIR);
+    }
+    
+    const tempDir = path.join(this.BACKUP_DIR, 'temp_import');
+    
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true });
+    }
+    fs.mkdirSync(tempDir);
+
+    // Extrahiere ZIP mit adm-zip
+    console.log('📦 Extracting ZIP file...');
+    const zip = new AdmZip(zipFilePath);
+    zip.extractAllTo(tempDir, true);
+
+    // Importiere jede CSV-Datei
+    const entityMap = {
+      'users.csv': User,
+      'games.csv': Game,
+      'decks.csv': Deck,
+      'ratings.csv': Rating,
+      'participations.csv': Participation,
+      'user_decks.csv': User_deck
+    };
+
+    console.log('🗑️ Clearing existing data...');
+    // Lösche bestehende Daten in umgekehrter Reihenfolge der Abhängigkeiten
+    await this.dataSource.getRepository(Rating).clear();
+    await this.dataSource.getRepository(Participation).clear();
+    await this.dataSource.getRepository(User_deck).clear();
+    await this.dataSource.getRepository(Deck).clear();
+    await this.dataSource.getRepository(Game).clear();
+    await this.dataSource.getRepository(User).clear();
+
+    console.log('📥 Importing data...');
+    // Importiere Daten in der richtigen Reihenfolge
+    for (const [filename, Entity] of Object.entries(entityMap)) {
+      const filePath = path.join(tempDir, filename);
+      if (fs.existsSync(filePath)) {
+        console.log(`📄 Processing ${filename}...`);
+        const csvContent = fs.readFileSync(filePath, 'utf-8');
+        const { data } = Papa.parse(csvContent, { header: true });
+        
+        // Typ-Sicherheit für die importierten Daten
+        const typedData = (data as Record<string, string>[]).map(item => {
+          const typedItem: Record<string, any> = {};
+          for (const [key, value] of Object.entries(item)) {
+            if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
+              typedItem[key] = Number(value);
+            } else {
+              typedItem[key] = value === '' ? null : value;
+            }
+          }
+          return typedItem;
+        });
+        
+        if (typedData.length > 0) {
+          await this.dataSource.getRepository(Entity).save(typedData);
+          console.log(`✅ Imported ${typedData.length} records from ${filename}`);
+        }
+      } else {
+        console.log(`⚠️ File not found: ${filename}`);
+      }
+    }
+
+    // Aufräumen
+    console.log('🧹 Cleaning up temporary files...');
+    fs.rmSync(tempDir, { recursive: true });
+    
+    console.log('🎉 Import completed successfully!');
   }
 
   /**
