@@ -55,34 +55,68 @@ export class BackupController {
       const backupPath = path.join(this.BACKUP_DIR, `backup_${timestamp}`);
       fs.mkdirSync(backupPath);
 
-      // Definition aller Entitäten (Datenbanktabellen), die gesichert werden sollen
+      // Definition aller Entitäten mit ihren Relations für vollständigen Export
       // Die Reihenfolge ist wichtig für die spätere Wiederherstellung wegen Fremdschlüsselabhängigkeiten
       const entities = [
-        { name: 'users', repo: this.dataSource.getRepository(User) },           // Benutzertabelle
-        { name: 'games', repo: this.dataSource.getRepository(Game) },           // Spieltabelle
-        { name: 'decks', repo: this.dataSource.getRepository(Deck) },           // Decks-Tabelle
-        { name: 'ratings', repo: this.dataSource.getRepository(Rating) },       // Bewertungstabelle
-        { name: 'participations', repo: this.dataSource.getRepository(Participation) }, // Teilnahmetabelle
-        { name: 'user_decks', repo: this.dataSource.getRepository(User_deck) }  // Benutzer-Deck-Zuordnungstabelle
+        { 
+          name: 'users', 
+          repo: this.dataSource.getRepository(User),
+          relations: [] // Users haben keine Foreign Keys
+        },
+        { 
+          name: 'games', 
+          repo: this.dataSource.getRepository(Game),
+          relations: [] // Games haben keine Foreign Keys
+        },
+        { 
+          name: 'decks', 
+          repo: this.dataSource.getRepository(Deck),
+          relations: ['owner'] // Deck hat owner (User)
+        },
+        { 
+          name: 'user_decks', 
+          repo: this.dataSource.getRepository(User_deck),
+          relations: ['user', 'deck'] // User_deck hat user und deck
+        },
+        { 
+          name: 'participations', 
+          repo: this.dataSource.getRepository(Participation),
+          relations: ['game', 'user_deck'] // Participation hat game und user_deck
+        },
+        { 
+          name: 'ratings', 
+          repo: this.dataSource.getRepository(Rating),
+          relations: ['participation', 'rater'] // Rating hat participation und rater (User)
+        }
       ];
 
       // Exportiere jede Tabelle als separate CSV-Datei
       for (const entity of entities) {
-        // Hole alle Datensätze aus der jeweiligen Tabelle
-        const data = await entity.repo.find();
-        // Konvertiere die komplexen Entity-Objekte in einfache JSON-Objekte
-        // Dies ist notwendig, da die Entity-Objekte Methoden und Beziehungen enthalten,
-        // die nicht in CSV gespeichert werden können
-        const plainData = data.map(item => {
-          const obj: Record<string, any> = {};
-          for (const [key, value] of Object.entries(item)) {
-            if (typeof value !== 'object' || value === null) {
-              obj[key] = value;
-            }
-          }
-          return obj;
-        });
-        const csv = Papa.unparse(plainData);
+        console.log(`📄 Exporting ${entity.name}...`);
+        
+        // Verwende rohe SQL-Query für direkten Zugriff auf die Tabellendaten
+        let rawData: any[];
+        
+        if (entity.name === 'user_decks') {
+          // Für user_decks holen wir die Foreign Key IDs direkt
+          rawData = await this.dataSource.query('SELECT * FROM "user_deck"');
+        } else if (entity.name === 'participations') {
+          rawData = await this.dataSource.query('SELECT * FROM "participation"');
+        } else if (entity.name === 'ratings') {
+          rawData = await this.dataSource.query('SELECT * FROM "rating"');
+        } else if (entity.name === 'decks') {
+          rawData = await this.dataSource.query('SELECT * FROM "deck"');
+        } else {
+          // Für einfache Tabellen ohne Foreign Keys
+          rawData = await this.dataSource.query(`SELECT * FROM "${entity.name === 'users' ? 'user' : entity.name === 'games' ? 'game' : entity.name}"`);
+        }
+        
+        console.log(`✅ Found ${rawData.length} records for ${entity.name}`);
+        if (rawData.length > 0) {
+          console.log('🔍 Sample data:', JSON.stringify(rawData[0], null, 2));
+        }
+        
+        const csv = Papa.unparse(rawData);
         fs.writeFileSync(path.join(backupPath, `${entity.name}.csv`), csv);
       }
 
@@ -123,26 +157,56 @@ export class BackupController {
    */
   @Post('/import')
   @ParseAndValidateFiles({
-    backupFile: { required: true }
+    backupFile: { required: true, saveTo: 'uploads' }
   })
   async importData(ctx: Context): Promise<HttpResponseOK | HttpResponseBadRequest> {
     try {
       console.log('📁 Starting file upload processing with FoalTS storage...');
-      
-      // Mit @foal/storage ist die Datei jetzt verfügbar unter ctx.request.body.backupFile
-      const backupFile = ctx.request.body.backupFile;
-      console.log('📁 Backup file object:', backupFile);
 
-      if (!backupFile) {
+      // Mit @foal/storage ist die Datei jetzt verfügbar unter ctx.files.get('backupFile')
+      const backupFiles = ctx.files.get('backupFile');
+      console.log('📁 Backup files array:', backupFiles);
+
+      if (!backupFiles || backupFiles.length === 0) {
         console.log('❌ No backup file provided');
         return new HttpResponseBadRequest({
           message: 'No backup file provided. Make sure to use form-data with key "backupFile"'
         });
       }
 
-      // FoalTS Storage gibt uns ein File-Objekt mit path property
-      const filePath = backupFile.path;
+      // FoalTS Storage gibt uns ein Array von File-Objekten, wir nehmen das erste
+      const backupFile = backupFiles[0];
+      console.log('📁 Full backup file object:', JSON.stringify(backupFile, null, 2));
+      
+      let filePath = backupFile.path;
+      let shouldCleanupTempFile = false;
+
+      console.log('📁 Initial file path from FoalTS:', filePath);
+
+      // FoalTS gibt bereits den vollständigen Pfad zurück (z.B. "uploads/filename.zip")
+      // Wir müssen nichts hinzufügen!
+      
+      // Fallback: Falls kein path vorhanden ist, aber ein buffer, erstelle eine temporäre Datei
+      if (!filePath && backupFile.buffer) {
+        console.log('📁 No file path, but buffer available. Creating temp file...');
+        
+        // Erstelle temporäre Datei aus dem Buffer im uploads-Verzeichnis
+        const tempFileName = `uploads/temp_backup_${Date.now()}.zip`;
+        filePath = tempFileName;
+        
+        // Stelle sicher, dass das uploads-Verzeichnis existiert
+        if (!fs.existsSync('uploads')) {
+          fs.mkdirSync('uploads');
+        }
+        
+        fs.writeFileSync(filePath, backupFile.buffer);
+        shouldCleanupTempFile = true;
+        
+        console.log('📁 Created temp file at:', filePath);
+      }
+
       console.log('📁 Processing file at path:', filePath);
+      console.log('📁 File exists:', fs.existsSync(filePath));
 
       if (!filePath || !fs.existsSync(filePath)) {
         return new HttpResponseBadRequest({
@@ -155,8 +219,9 @@ export class BackupController {
       
       // Cleanup der temporären Datei
       try {
-        if (fs.existsSync(filePath)) {
+        if (shouldCleanupTempFile && fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
+          console.log('🧹 Cleaned up temporary file:', filePath);
         }
       } catch (cleanupError) {
         console.warn('⚠️ Could not cleanup file:', cleanupError);
@@ -183,12 +248,9 @@ export class BackupController {
   private async processBackupImport(zipFilePath: string): Promise<void> {
     console.log('🔄 Processing backup import from:', zipFilePath);
     
-    // Erstelle das Backup-Verzeichnis und Temp-Verzeichnis, falls sie nicht existieren
-    if (!fs.existsSync(this.BACKUP_DIR)) {
-      fs.mkdirSync(this.BACKUP_DIR);
-    }
-    
-    const tempDir = path.join(this.BACKUP_DIR, 'temp_import');
+    // Verwende ein temporäres Import-Verzeichnis im aktuellen Arbeitsverzeichnis
+    // Nicht das BACKUP_DIR verwenden, da zipFilePath bereits von FoalTS kommt
+    const tempDir = 'temp_import';
     
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true });
@@ -200,28 +262,35 @@ export class BackupController {
     const zip = new AdmZip(zipFilePath);
     zip.extractAllTo(tempDir, true);
 
-    // Importiere jede CSV-Datei
-    const entityMap = {
-      'users.csv': User,
-      'games.csv': Game,
-      'decks.csv': Deck,
-      'ratings.csv': Rating,
-      'participations.csv': Participation,
-      'user_decks.csv': User_deck
-    };
+    // Importiere jede CSV-Datei in der KORREKTEN Abhängigkeitsreihenfolge
+    // Zuerst die Basis-Tabellen ohne Fremdschlüssel, dann die abhängigen Tabellen
+    const entityMap = [
+      { filename: 'users.csv', Entity: User },           // Basis: Keine Abhängigkeiten
+      { filename: 'games.csv', Entity: Game },           // Basis: Keine Abhängigkeiten  
+      { filename: 'decks.csv', Entity: Deck },           // Basis: Keine Abhängigkeiten
+      { filename: 'user_decks.csv', Entity: User_deck }, // Abhängig von: User, Deck
+      { filename: 'participations.csv', Entity: Participation }, // Abhängig von: Game, User_deck
+      { filename: 'ratings.csv', Entity: Rating }        // Abhängig von: Participation, User (als rater)
+    ];
 
     console.log('🗑️ Clearing existing data...');
-    // Lösche bestehende Daten in umgekehrter Reihenfolge der Abhängigkeiten
-    await this.dataSource.getRepository(Rating).clear();
-    await this.dataSource.getRepository(Participation).clear();
-    await this.dataSource.getRepository(User_deck).clear();
-    await this.dataSource.getRepository(Deck).clear();
-    await this.dataSource.getRepository(Game).clear();
-    await this.dataSource.getRepository(User).clear();
+    // Deaktiviere Foreign Key Constraints temporär und lösche alle Daten
+    await this.dataSource.query('SET session_replication_role = replica;');
+    
+    // Lösche alle Daten aus allen Tabellen
+    await this.dataSource.query('TRUNCATE TABLE "rating" CASCADE;');
+    await this.dataSource.query('TRUNCATE TABLE "participation" CASCADE;');
+    await this.dataSource.query('TRUNCATE TABLE "user_deck" CASCADE;');
+    await this.dataSource.query('TRUNCATE TABLE "deck" CASCADE;');
+    await this.dataSource.query('TRUNCATE TABLE "game" CASCADE;');
+    await this.dataSource.query('TRUNCATE TABLE "user" CASCADE;');
+    
+    // Reaktiviere Foreign Key Constraints
+    await this.dataSource.query('SET session_replication_role = DEFAULT;');
 
     console.log('📥 Importing data...');
     // Importiere Daten in der richtigen Reihenfolge
-    for (const [filename, Entity] of Object.entries(entityMap)) {
+    for (const { filename, Entity } of entityMap) {
       const filePath = path.join(tempDir, filename);
       if (fs.existsSync(filePath)) {
         console.log(`📄 Processing ${filename}...`);
