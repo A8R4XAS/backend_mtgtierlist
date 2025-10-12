@@ -126,7 +126,7 @@ async function createTestDecks(users: User[]): Promise<Deck[]> {
     
     const testDecks = [
         {
-            owner: users[0],
+            owner: users[0],  // Verwende das komplette User-Objekt
             commander: 'Atraxa, Praetors\' Voice',
             thema: 'Superfriends',
             gameplan: 'Control the board with planeswalkers',
@@ -183,19 +183,47 @@ async function createTestDecks(users: User[]): Promise<Deck[]> {
 }
 
 /**
- * Erstellt Benutzer-Deck-Zuordnungen (jeder Benutzer besitzt sein eigenes Deck)
+ * Erstellt Benutzer-Deck-Zuordnungen (welcher User hat mit welchem Deck gespielt)
+ * Erstellt verschiedene Kombinationen - auch Users die mit fremden Decks spielen
  */
 async function createTestUserDecks(users: User[], decks: Deck[]): Promise<User_deck[]> {
     const userDeckRepo = dataSource.getRepository(User_deck);
     
     const userDecks: User_deck[] = [];
-    for (let i = 0; i < Math.min(users.length, decks.length); i++) {
+    
+    // Erstelle interessante Kombinationen von Spielern und Decks
+    const combinations = [
+        // Jeder spielt erstmal mit seinem eigenen Deck
+        { user: users[0], deck: decks[0] },
+        { user: users[1], deck: decks[1] },
+        { user: users[2], deck: decks[2] },
+        { user: users[3], deck: decks[3] },
+        { user: users[4], deck: decks[4] },
+        
+        // Dann ein paar Cross-Kombinationen (User spielt mit fremdem Deck)
+        { user: users[0], deck: decks[1] }, // Admin spielt mit Edgar Markov
+        { user: users[1], deck: decks[2] }, // Moderator spielt mit Meren
+        { user: users[2], deck: decks[3] }, // Alice spielt mit Azami
+        { user: users[3], deck: decks[4] }, // Bob spielt mit Krenko
+        { user: users[4], deck: decks[0] }  // Charlie spielt mit Atraxa
+    ];
+    
+    for (const combo of combinations) {
+        console.log(`Creating user_deck: ${combo.user.name} spielt mit ${combo.deck.commander}`);
+        
         const userDeck = userDeckRepo.create({
-            user: users[i],
-            deck: decks[i]
+            user: combo.user,  // Verwende das komplette User-Objekt
+            deck: combo.deck   // Verwende das komplette Deck-Objekt
         });
-        const savedUserDeck = await userDeckRepo.save(userDeck);
-        userDecks.push(savedUserDeck);
+        
+        try {
+            const savedUserDeck = await userDeckRepo.save(userDeck);
+            userDecks.push(savedUserDeck);
+            console.log(`✅ Created user_deck with id=${savedUserDeck.id}`);
+        } catch (error) {
+            // Ignoriere Duplikate falls @Unique constraint verletzt wird
+            console.log(`⚠️ User_deck combination übersprungen (Duplikat): ${combo.user.name} + ${combo.deck.commander}`);
+        }
     }
 
     return userDecks;
