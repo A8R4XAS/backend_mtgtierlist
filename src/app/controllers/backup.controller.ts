@@ -4,7 +4,7 @@
  * von zuvor erstellten Backups.
  */
 
-import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post, dependency } from '@foal/core';
+import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post, dependency, UserRequired, UseSessions } from '@foal/core';
 import { ParseAndValidateFiles } from '@foal/storage';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
@@ -20,11 +20,16 @@ import * as Papa from 'papaparse';          // Für CSV-Verarbeitung
 import * as fs from 'fs';                   // Für Dateisystemoperationen
 import * as path from 'path';               // Für Pfadmanipulation
 import * as AdmZip from 'adm-zip';          // Für ZIP-Operationen
+// Import der eigenen Hooks
+import { AdminRequired } from '../hooks';
 
 /**
  * Controller-Klasse für die Verwaltung von Datenbank-Backups
  * Stellt Endpunkte für Export und Import von Datenbank-Backups bereit
+ * Nur für authentifizierte Admin-Benutzer zugänglich
  */
+@UseSessions()
+@UserRequired()
 export class BackupController {
   // Verzeichnis, in dem die Backup-Dateien gespeichert werden
   private readonly BACKUP_DIR = 'backups';
@@ -36,10 +41,12 @@ export class BackupController {
   /**
    * Exportiert alle Daten aus der Datenbank als ZIP-Archiv von CSV-Dateien
    * Endpunkt: GET /export
+   * Nur für Admin-Benutzer zugänglich
    * @param ctx Der Anfrage-Kontext
    * @returns Eine ZIP-Datei mit CSV-Exporten aller Datenbanktabellen
    */
   @Get('/export')
+  @AdminRequired()
   async exportData(ctx: Context) {
     try {
       // Erstelle das Backup-Verzeichnis, falls es noch nicht existiert
@@ -151,11 +158,13 @@ export class BackupController {
   /**
    * Importiert Daten aus einem zuvor erstellten Backup
    * Endpunkt: POST /import
+   * Nur für Admin-Benutzer zugänglich
    * Erwartet eine ZIP-Datei mit CSV-Dateien im Request
    * @param ctx Der Anfrage-Kontext mit der hochgeladenen Backup-Datei
    * @returns Eine Erfolgsmeldung nach erfolgreicher Wiederherstellung
    */
   @Post('/import')
+  @AdminRequired()
   @ParseAndValidateFiles({
     backupFile: { required: true, saveTo: 'uploads' }
   })
