@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class InitialSchema0000000000000 implements MigrationInterface {
-    name = 'InitialSchema0000000000000'
+export class InitialSchema1000000000000 implements MigrationInterface {
+    name = 'InitialSchema1000000000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Prüfe ob die user Tabelle bereits existiert (dann wurde das Schema schon erstellt)
