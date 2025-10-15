@@ -23,14 +23,15 @@
     "makemigrations2": "npm run postgres:start && npx foal rmdir build && tsc -p tsconfig.app.json && npx typeorm migration:generate src/migrations/migration -d build/db -p && tsc -p tsconfig.app.json",
     "migrations2": "npm run postgres:start && npx typeorm migration:run -d build/db",
     "revertmigration2": "npm run postgres:start && npx typeorm migration:revert -d build/db",
-    "start": "npm run migration:run && node ./build/index.js",
+    "start": "npm run build && npm run migration:run && node ./build/index.js",
     "migration:run": "npx typeorm migration:run -d build/db",
     "migration:revert": "npx typeorm migration:revert -d build/db",
     "migration:generate": "npx typeorm migration:generate src/migrations/migration -d build/db -p && tsc -p tsconfig.app.json",
     "backup-cli": "ts-node src/scripts/backup-cli.ts",
     "generate-testdata": "npm run build && npm run postgres:start && npx foal run generate-testdata",
     "test:single": "npm run postgres:start && npm run build:test && mocha --file ./build/test.js",
-    "test:backup": "npm run test:single \"./build/app/controllers/backup.controller.spec.js\""
+    "test:backup": "npm run test:single \"./build/app/controllers/backup.controller.spec.js\"",
+    "start:prod": "npm run build && npm run migration:run && node ./build/index.js"
   },
   "engines": {
     "node": ">=22.0.0"

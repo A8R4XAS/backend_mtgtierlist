@@ -129,8 +129,8 @@ export class ParticipationController {
     try {
       const userId = parseInt(ctx.request.params.userId);
       const participations = await Participation.find({
-        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
-        where: { user_deck: { user: { id: userId } } }
+        relations: ['userDeck', 'userDeck.user', 'userDeck.deck', 'game'],
+        where: { userDeck: { user: { id: userId } } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
@@ -144,8 +144,8 @@ export class ParticipationController {
     try {
       const deckId = parseInt(ctx.request.params.deckId);
       const participations = await Participation.find({
-        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
-        where: { user_deck: { deck: { id: deckId } } }
+        relations: ['userDeck', 'userDeck.user', 'userDeck.deck', 'game'],
+        where: { userDeck: { deck: { id: deckId } } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
