@@ -111,4 +111,36 @@ export class RatingController {
 		await entity.remove();
 		return new HttpResponseNoContent();
 	}
+
+	// Bewertungen für eine bestimmte Teilnahme abrufen
+	@Get('/participation/:participationId')
+	async getByParticipation(ctx: Context) {
+		try {
+			const participationId = parseInt(ctx.request.params.participationId);
+			const ratings = await Rating.find({
+				where: { participation: { id: participationId } },
+				relations: ['rater', 'participation', 'participation.user_deck', 'participation.user_deck.user', 'participation.user_deck.deck']
+			});
+			return new HttpResponseOK(ratings);
+		} catch (error) {
+			console.error('Error fetching ratings by participation:', error);
+			return new HttpResponseBadRequest(error);
+		}
+	}
+
+	// Bewertungen von einem bestimmten Benutzer abrufen
+	@Get('/rater/:raterId')
+	async getByRater(ctx: Context) {
+		try {
+			const raterId = parseInt(ctx.request.params.raterId);
+			const ratings = await Rating.find({
+				where: { rater: { id: raterId } },
+				relations: ['rater', 'participation', 'participation.user_deck', 'participation.user_deck.user', 'participation.user_deck.deck']
+			});
+			return new HttpResponseOK(ratings);
+		} catch (error) {
+			console.error('Error fetching ratings by rater:', error);
+			return new HttpResponseBadRequest(error);
+		}
+	}
 }

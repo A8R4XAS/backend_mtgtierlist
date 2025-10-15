@@ -2,6 +2,12 @@
   "settings": {
     "session": {
       "store": "@foal/typeorm"
+    },
+    "disk": {
+      "driver": "local",
+      "local": {
+        "directory": "./"
+      }
     }
   },
   "database": {

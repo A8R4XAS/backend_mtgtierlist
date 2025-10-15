@@ -7,4 +7,5 @@ export { UserController } from './user.controller';
 export { RatingController } from './rating.controller';
 export { EvaluationController } from './evaluation.controller';
 export { ParticipationController } from './participation.controller';
+export { StatisticsController } from './statistics.controller';
 export { BackupController } from './backup.controller';
