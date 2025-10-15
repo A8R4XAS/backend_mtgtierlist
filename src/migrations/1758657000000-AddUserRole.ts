@@ -4,6 +4,22 @@ export class AddUserRole1758657000000 implements MigrationInterface {
     name = 'AddUserRole1758657000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        // Prüfe ob die user Tabelle existiert
+        const userTableExists = await queryRunner.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'user'
+            );
+        `);
+
+        // Wenn die Tabelle nicht existiert, überspringe diese Migration
+        // (Das Schema wird durch InitialSchema erstellt)
+        if (!userTableExists[0].exists) {
+            console.log('User table does not exist yet, skipping AddUserRole migration (will be handled by InitialSchema)');
+            return;
+        }
+
         // Prüfe ob der Enum-Typ bereits existiert
         const typeExists = await queryRunner.query(`
             SELECT EXISTS (

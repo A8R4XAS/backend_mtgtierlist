@@ -4,6 +4,21 @@ export class AddGameCreatedAt1758657200000 implements MigrationInterface {
     name = 'AddGameCreatedAt1758657200000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        // Prüfe ob die game Tabelle existiert
+        const gameTableExists = await queryRunner.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'game'
+            );
+        `);
+
+        // Wenn die Tabelle nicht existiert, überspringe diese Migration
+        if (!gameTableExists[0].exists) {
+            console.log('Game table does not exist yet, skipping AddGameCreatedAt migration');
+            return;
+        }
+
         // Prüfe ob die Spalte bereits existiert
         const columnExists = await queryRunner.query(`
             SELECT EXISTS (
