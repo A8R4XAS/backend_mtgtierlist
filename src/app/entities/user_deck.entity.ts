@@ -18,7 +18,7 @@ export class User_deck extends BaseEntity {
   @JoinColumn({ name: 'deck_id' })
   deck: Deck;
 
-  @OneToMany(() => Participation, participation => participation.userDeck)
+  @OneToMany(() => Participation, participation => participation.user_deck)
   participations: Participation[];
 
 }

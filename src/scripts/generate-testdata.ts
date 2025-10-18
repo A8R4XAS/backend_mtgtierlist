@@ -245,7 +245,7 @@ async function createTestParticipations(games: Game[], userDecks: User_deck[]): 
         for (let i = 0; i < selectedUserDecks.length; i++) {
             const participation = participationRepo.create({
                 game: game,
-                userDeck: selectedUserDecks[i],
+                user_deck: selectedUserDecks[i],
                 is_winner: i === 0 // Der erste Teilnehmer gewinnt
             });
             const savedParticipation = await participationRepo.save(participation);

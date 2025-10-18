@@ -28,13 +28,20 @@ async function check(user: number, deck: number): Promise<User_deck> {
 
 
 export class ParticipationController {
+
   @Get('/')
   async findAll() {
-    const items = await Participation.find({
-      relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game']
-    });
-    if (!items) return new HttpResponseOK([]);
-    return new HttpResponseOK(items);
+
+    try {
+      const items = await Participation.find({relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game']});
+      if (!items) return new HttpResponseOK([]);
+      return new HttpResponseOK(items);
+    } catch (error) {
+      console.log('-------------- error ---------------------');
+      console.log(error);
+      return new HttpResponseBadRequest(error);
+    }
+    
   }
 
   @Get('/:id')
@@ -66,7 +73,7 @@ export class ParticipationController {
       const gameExist = await Game.findOneByOrFail({ id: game });
 
       const participation = new Participation();
-      participation.userDeck = user_deck;
+      participation.user_deck = user_deck;
       participation.game = gameExist;
       participation.is_winner = ctx.request.body.is_winner || false;
 
@@ -96,7 +103,7 @@ export class ParticipationController {
     const { is_Winner, game, user_deck } = ctx.request.body;
     entity.is_winner = is_Winner !== undefined ? is_Winner : entity.is_winner;
     entity.game = game ? await Game.findOneByOrFail({ id: game }) : entity.game;
-    entity.userDeck = user_deck ? await User_deck.findOneByOrFail({ id: user_deck }) : entity.userDeck;
+    entity.user_deck = user_deck ? await User_deck.findOneByOrFail({ id: user_deck }) : entity.user_deck;
     await entity.save();
     return new HttpResponseOK(entity);
   }
@@ -114,7 +121,7 @@ export class ParticipationController {
     try {
       const gameId = parseInt(ctx.request.params.gameId);
       const participations = await Participation.find({
-        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        relations: ['game','user_deck'],
         where: { game: { id: gameId } }
       });
       return new HttpResponseOK(participations);
@@ -129,8 +136,8 @@ export class ParticipationController {
     try {
       const userId = parseInt(ctx.request.params.userId);
       const participations = await Participation.find({
-        relations: ['userDeck', 'userDeck.user', 'userDeck.deck', 'game'],
-        where: { userDeck: { user: { id: userId } } }
+        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        where: { user_deck: { user: { id: userId } } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
@@ -144,8 +151,8 @@ export class ParticipationController {
     try {
       const deckId = parseInt(ctx.request.params.deckId);
       const participations = await Participation.find({
-        relations: ['userDeck', 'userDeck.user', 'userDeck.deck', 'game'],
-        where: { userDeck: { deck: { id: deckId } } }
+        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        where: { user_deck: { deck: { id: deckId } } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
@@ -211,7 +218,7 @@ export class ParticipationController {
         const user_deck = await check(item.user, item.deck);
         const gameExist = await Game.findOneByOrFail({ id: item.game });
         const participation = new Participation();
-        participation.userDeck = user_deck;
+        participation.user_deck = user_deck;
         participation.game = gameExist;
         participation.is_winner = item.is_winner || false;
         await participation.save();
