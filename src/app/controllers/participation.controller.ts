@@ -37,7 +37,6 @@ export class ParticipationController {
       if (!items) return new HttpResponseOK([]);
       return new HttpResponseOK(items);
     } catch (error) {
-      console.log('-------------- error ---------------------');
       console.log(error);
       return new HttpResponseBadRequest(error);
     }
@@ -121,7 +120,7 @@ export class ParticipationController {
     try {
       const gameId = parseInt(ctx.request.params.gameId);
       const participations = await Participation.find({
-        relations: ['game','user_deck'],
+        relations: ['game','user_deck','user_deck.user', 'user_deck.deck'],
         where: { game: { id: gameId } }
       });
       return new HttpResponseOK(participations);
