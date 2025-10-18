@@ -1,4 +1,4 @@
-import { Context, Delete, Get, HttpResponseBadRequest, HttpResponseCreated, HttpResponseInternalServerError, HttpResponseNoContent, HttpResponseNotFound, HttpResponseOK, Post } from '@foal/core';
+import { Context, Delete, Get, HttpResponseBadRequest, HttpResponseCreated, HttpResponseInternalServerError, HttpResponseNoContent, HttpResponseNotFound, HttpResponseOK, Post, ValidatePathParam } from '@foal/core';
 import { Game } from '../entities/index';
 
 export class GameController {
@@ -33,11 +33,11 @@ export class GameController {
   }
 
   @Get('/:id')
+  @ValidatePathParam('id', { type: 'number' })
   async getGame(ctx: Context) {
     try {
       const game = await Game.findOne({
-        where: { id: Number(ctx.request.params.id) },
-        relations: ['participations']
+        where: { id: ctx.request.params.id }
       });
       if (!game) return new HttpResponseOK([]);
       return new HttpResponseOK(game);
