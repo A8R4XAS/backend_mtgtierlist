@@ -14,11 +14,11 @@ export class UserController {
   @ValidateBody({
     type: 'object',
     properties: {
-      name: { type: 'string', maxLength: 255 },
+      username: { type: 'string', maxLength: 255 },
       email: { type: 'string', format: 'email' },
       password: { type: 'string', maxLength: 255 }
     },
-    required: ['name', 'email', 'password'],
+    required: ['username', 'email', 'password'],
     additionalProperties: false,
   })
   async postUser(ctx: Context) {
@@ -61,20 +61,45 @@ export class UserController {
   @ValidateBody({
     type: 'object',
     properties: {
-      name: { type: 'string', maxLength: 255 },
-      email: { type: 'string', format: 'email' },
-      password: { type: 'string', maxLength: 255 }
+      username: { type: 'string', maxLength: 255 },
+      email: { type: 'string', format: 'email' }
     },
-    required: ['name', 'email', 'password'],
     additionalProperties: false,
   })
   async updateUser(ctx: Context) {
     try {
       const user = await User.findOneByOrFail({ id: ctx.request.params.id });
-      user.name = ctx.request.body.name || user.name;
-      user.email = ctx.request.body.email || user.email;
-      user.password = ctx.request.body.password || user.password;
+      
+      if (ctx.request.body.username) {
+        user.name = ctx.request.body.username;
+      }
+      
+      if (ctx.request.body.email) {
+        user.email = ctx.request.body.email;
+      }
 
+      await user.save();
+
+      return new HttpResponseOK(user);
+    } catch (error) {
+      return new HttpResponseBadRequest(error);
+    }
+  }
+
+  @Put('/:id/role')
+  @ValidatePathParam('id', { type: 'number' })
+  @ValidateBody({
+    type: 'object',
+    properties: {
+      role: { type: 'string', enum: ['user', 'admin'] }
+    },
+    required: ['role'],
+    additionalProperties: false,
+  })
+  async updateUserRole(ctx: Context) {
+    try {
+      const user = await User.findOneByOrFail({ id: ctx.request.params.id });
+      user.role = ctx.request.body.role;
       await user.save();
 
       return new HttpResponseOK(user);
