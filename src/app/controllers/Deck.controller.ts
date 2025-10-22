@@ -10,9 +10,41 @@ export class DeckController {
     return new HttpResponseOK(decks);
   }
 
+  // Neuer Endpunkt: POST / - Deck erstellen mit User-ID aus Body
+  @Post('/')
+  @ValidateBody({
+    type: 'object',
+    properties: {
+      commander: { type: 'string', maxLength: 255 },
+      userId: { type: 'number' }
+    },
+    required: ['commander', 'userId'],
+    additionalProperties: true,
+  })
+  async createDeck(ctx: Context) {
+    try {
+      const user = await User.findOneByOrFail({
+        id: ctx.request.body.userId
+      });
 
+      const deck      = new Deck();
+      deck.owner      = user;
+      deck.commander  = ctx.request.body.commander;
+      deck.thema      = ctx.request.body.thema;
+      deck.gameplan   = ctx.request.body.gameplan;
+      deck.tempo      = ctx.request.body.tempo;
+      deck.tier       = ctx.request.body.tier;
+      deck.weaknesses = ctx.request.body.weaknesses;
 
+      await deck.save();
 
+      return new HttpResponseCreated(deck);
+    } catch (error) {
+      return new HttpResponseBadRequest(error);
+    }
+  }
+
+  // Legacy Endpunkt: POST /:id - Deck erstellen mit User-ID aus URL
   @Post('/:id')
   @ValidatePathParam('id', { type: 'number' })
   @ValidateBody({
