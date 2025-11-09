@@ -2,6 +2,11 @@
   "settings": {
     "cors": {
       "allowedOrigins": "[\"http://localhost:5173\"]"
+    },
+    "jwt": {
+      "secret": "mtg-tierlist-super-secret-jwt-key-change-in-production-min-32-characters-long",
+      "refreshSecret": "mtg-tierlist-refresh-secret-key-change-in-production-min-32-characters-long",
+      "secretEncoding": "utf8"
     }
   },
   "database": {

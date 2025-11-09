@@ -1,14 +1,6 @@
-import { controller, dependency, Get, HttpResponseOK, IAppController, Store, UseSessions } from '@foal/core';
+import { controller, dependency, Get, HttpResponseOK, IAppController, Store } from '@foal/core';
 
 import { ApiController, AuthController, BackupController } from './controllers';
-import { User } from './entities';
-
-@UseSessions({
-  cookie: true,
-  csrf: false,
-  redirectTo: '/login',
-  user: (id: number) => User.findOneBy({ id }),
-})
 
 export class AppController implements IAppController {
 
@@ -16,8 +8,8 @@ export class AppController implements IAppController {
   store: Store;
 
   subControllers = [
-    controller('/api/auth', AuthController), // ⬅️ direkt hier
-    controller('/api', ApiController),       // ⬅️ enthält @UserRequired()
+    controller('/api/auth', AuthController), // JWT-basiert, keine Session
+    controller('/api', ApiController),       // JWT-basiert mit Middleware
     controller('/api/backup', BackupController),
   ];
 

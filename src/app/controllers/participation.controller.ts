@@ -1,57 +1,55 @@
 import { Context, Get, Post, Put, Delete, HttpResponseOK, HttpResponseNoContent, ValidateBody, HttpResponseCreated, HttpResponseBadRequest } from '@foal/core';
+import { JWTRequired } from '@foal/jwt';
 import { Participation } from '../entities/participation.entity';
 import { Deck, Game, User, User_deck } from '../entities';
+
+// Shared relations array - used in multiple queries
+const PARTICIPATION_RELATIONS = ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'];
 
 /**
  * Check if a user_deck already exists. If not, create a new one.
  */
 async function check(user: number, deck: number): Promise<User_deck> {
-  try {
-    let user_deck = await User_deck.findOne({
-      relations: ['user', 'deck'],
-      where: { user: { id: user }, deck: { id: deck } }
-    });
+  let user_deck = await User_deck.findOne({
+    relations: ['user', 'deck'],
+    where: { user: { id: user }, deck: { id: deck } }
+  });
 
-    if (!user_deck) {
-      user_deck = new User_deck();
-      user_deck.user = await User.findOneByOrFail({ id: user });
-      user_deck.deck = await Deck.findOneByOrFail({ id: deck });
-      return await user_deck.save();
-    }
-
-    return user_deck;
-  } catch (error) {
-    console.log(error);
-    throw error;
+  if (!user_deck) {
+    user_deck = new User_deck();
+    user_deck.user = await User.findOneByOrFail({ id: user });
+    user_deck.deck = await Deck.findOneByOrFail({ id: deck });
+    return await user_deck.save();
   }
+
+  return user_deck;
 }
 
 
 export class ParticipationController {
 
   @Get('/')
+  @JWTRequired()
   async findAll() {
-
     try {
-      const items = await Participation.find({relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game']});
+      const items = await Participation.find({ relations: PARTICIPATION_RELATIONS });
       if (!items) return new HttpResponseOK([]);
       return new HttpResponseOK(items);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
-    
   }
 
   @Get('/:id')
+  @JWTRequired()
   async findById(ctx: Context) {
     const item = await Participation.findOne({
-      relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+      relations: PARTICIPATION_RELATIONS,
       where: { id: ctx.request.params.id }
     });
     if (!item) return new HttpResponseNoContent();
     return new HttpResponseOK(item);
-  } 
+  }
 
   @Post('/')
   @ValidateBody({
@@ -79,7 +77,6 @@ export class ParticipationController {
       await participation.save();
       return new HttpResponseCreated(participation);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
   }
@@ -116,46 +113,46 @@ export class ParticipationController {
   }
 
   @Get('/game/:gameId')
+  @JWTRequired()
   async findByGame(ctx: Context) {
     try {
       const gameId = parseInt(ctx.request.params.gameId);
       const participations = await Participation.find({
-        relations: ['game','user_deck','user_deck.user', 'user_deck.deck'],
+        relations: PARTICIPATION_RELATIONS,
         where: { game: { id: gameId } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
   }
 
   @Get('/user/:userId')
+  @JWTRequired()
   async findByUser(ctx: Context) {
     try {
       const userId = parseInt(ctx.request.params.userId);
       const participations = await Participation.find({
-        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        relations: PARTICIPATION_RELATIONS,
         where: { user_deck: { user: { id: userId } } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
   }
 
   @Get('/deck/:deckId')
+  @JWTRequired()
   async findByDeck(ctx: Context) {
     try {
       const deckId = parseInt(ctx.request.params.deckId);
       const participations = await Participation.find({
-        relations: ['user_deck', 'user_deck.user', 'user_deck.deck', 'game'],
+        relations: PARTICIPATION_RELATIONS,
         where: { user_deck: { deck: { id: deckId } } }
       });
       return new HttpResponseOK(participations);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
   }
@@ -186,7 +183,6 @@ export class ParticipationController {
       
       return new HttpResponseOK(participation);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
   }
@@ -224,7 +220,7 @@ export class ParticipationController {
         created.push(participation);
       } catch (error) {
         // Fehler für einzelne Einträge ignorieren, aber loggen
-        console.log('Fehler bei Bulk-Teilnahme:', error);
+        console.error('Fehler bei Bulk-Teilnahme:', error);
       }
     }
     return new HttpResponseCreated(created);

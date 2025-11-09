@@ -1,4 +1,5 @@
-import { Context, Get, HttpResponseOK, HttpResponseBadRequest, UserRequired } from '@foal/core';
+import { Context, Get, HttpResponseOK, HttpResponseBadRequest } from '@foal/core';
+import { JWTRequired } from '@foal/jwt';
 import { Participation } from '../entities';
 
 export interface MonthlyStatistics {
@@ -18,10 +19,10 @@ export interface UserChartData {
   }[];
 }
 
-@UserRequired()
 export class StatisticsController {
 
   @Get('/user/:userId/monthly')
+  @JWTRequired()
   async getUserMonthlyStats(ctx: Context): Promise<HttpResponseOK | HttpResponseBadRequest> {
     try {
       const userId = parseInt(ctx.request.params.userId, 10);
@@ -83,6 +84,7 @@ export class StatisticsController {
   }
 
   @Get('/user/:userId/chart-data')
+  @JWTRequired()
   async getUserChartData(ctx: Context): Promise<HttpResponseOK | HttpResponseBadRequest> {
     try {
       const userId = parseInt(ctx.request.params.userId, 10);
@@ -238,6 +240,7 @@ export class StatisticsController {
   }
 
   @Get('/user/:userId/summary')
+  @JWTRequired()
   async getUserSummary(ctx: Context): Promise<HttpResponseOK | HttpResponseBadRequest> {
     try {
       const userId = parseInt(ctx.request.params.userId, 10);

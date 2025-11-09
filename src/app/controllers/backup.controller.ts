@@ -4,7 +4,8 @@
  * von zuvor erstellten Backups.
  */
 
-import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post, dependency, UserRequired, UseSessions } from '@foal/core';
+import { Context, Get, HttpResponseBadRequest, HttpResponseOK, Post, dependency } from '@foal/core';
+import { JWTRequired } from '@foal/jwt';
 import { ParseAndValidateFiles } from '@foal/storage';
 import { DataSource } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
@@ -27,9 +28,8 @@ import { AdminRequired } from '../hooks';
  * Controller-Klasse für die Verwaltung von Datenbank-Backups
  * Stellt Endpunkte für Export und Import von Datenbank-Backups bereit
  * Nur für authentifizierte Admin-Benutzer zugänglich
+ * Verwendet JWT-Authentifizierung über AdminRequired Hook
  */
-@UseSessions()
-@UserRequired()
 export class BackupController {
   // Verzeichnis, in dem die Backup-Dateien gespeichert werden
   private readonly BACKUP_DIR = 'backups';
@@ -46,6 +46,7 @@ export class BackupController {
    * @returns Eine ZIP-Datei mit CSV-Exporten aller Datenbanktabellen
    */
   @Get('/export')
+  @JWTRequired()
   @AdminRequired()
   async exportData(ctx: Context) {
     try {
@@ -164,6 +165,7 @@ export class BackupController {
    * @returns Eine Erfolgsmeldung nach erfolgreicher Wiederherstellung
    */
   @Post('/import')
+  @JWTRequired()
   @AdminRequired()
   @ParseAndValidateFiles({
     backupFile: { required: true, saveTo: 'uploads' }

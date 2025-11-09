@@ -1,11 +1,45 @@
-import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, UseSessions, ValidateBody, verifyPassword, Get } from '@foal/core';
+import { Context, hashPassword, HttpResponseConflict, HttpResponseNoContent, HttpResponseOK, HttpResponseUnauthorized, Post, ValidateBody, verifyPassword, Get } from '@foal/core';
+import { JWTRequired } from '@foal/jwt';
 import { User, UserRole } from '../entities/index';
+import { JwtService, JwtPayload } from '../services/jwt.service';
+
+// Helper: JWT Payload erstellen
+const createJwtPayload = (user: User): JwtPayload => ({
+  sub: String(user.id),
+  userId: user.id,
+  email: user.email,
+  role: user.role,
+});
+
+// Helper: Cookie-Optionen für Refresh Token
+const getRefreshTokenCookieOptions = (rememberMe?: boolean) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: rememberMe ? 7 * 24 * 60 * 60 : undefined,
+  path: '/',
+});
+
+// Helper: User Response mit Tokens erstellen
+const createAuthResponse = (user: User, accessToken: string, refreshToken: string, rememberMe: boolean = true) => {
+  const response = new HttpResponseOK({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    accessToken,
+  });
+  
+  response.setCookie('refreshToken', refreshToken, getRefreshTokenCookieOptions(rememberMe));
+  return response;
+};
 
 const credentialsSchema = {
   type: 'object',
   properties: {
     email: { type: 'string', format: 'email', maxLength: 255 },
-    password: { type: 'string' }
+    password: { type: 'string' },
+    rememberMe: { type: 'boolean' }
   },
   required: [ 'email', 'password' ],
   additionalProperties: false,
@@ -28,7 +62,7 @@ export class AuthController {
   @ValidateBody(credentialsSchema)
   async login(ctx: Context) {
 
-    const {email, password} = ctx.request.body;
+    const {email, password, rememberMe} = ctx.request.body;
 
     const user = await User.findOneBy({ email });
     if (!user) {
@@ -39,23 +73,23 @@ export class AuthController {
       return new HttpResponseUnauthorized();
     }
 
-    ctx.session!.setUser(user);
-    await ctx.session!.regenerateID();
+    // JWT Tokens generieren
+    const payload = createJwtPayload(user);
+    const { accessToken, refreshToken } = JwtService.generateTokenPair(payload);
 
-    ctx.user = user;
-
-    return new HttpResponseOK({
-      id: user.id,
-      name: user.name,
-      role: user.role,
-    });
+    return createAuthResponse(user, accessToken, refreshToken, rememberMe);
   }
 
   @Post('/logout')
-  @UseSessions()
   async logout(ctx: Context) {
-    if (ctx.session) await ctx.session.destroy();
-    return new HttpResponseNoContent();
+    // Refresh Token Cookie löschen
+    const response = new HttpResponseNoContent();
+    response.setCookie('refreshToken', '', {
+      ...getRefreshTokenCookieOptions(),
+      maxAge: 0,
+    });
+
+    return response;
   }
 
   @Post('/signup')
@@ -64,44 +98,66 @@ export class AuthController {
   
     const {name, email, password} = ctx.request.body;
 
-    const existingUser = await User.findBy({ email });
-    if (existingUser.length > 0) {
-      return new HttpResponseConflict({'error': 'Invalid signup request.'});
+    // Effizienter Check ob User existiert
+    const existingUser = await User.findOneBy({ email });
+    if (existingUser) {
+      return new HttpResponseConflict({'error': 'Email already registered'});
     }
 
     const user = new User();
     user.email = email;
     user.name = name;
     user.password = await hashPassword(password);
-    // Bei der Registrierung wird standardmäßig die Rolle USER vergeben
     user.role = UserRole.USER;
     await user.save();
 
-    ctx.session!.setUser(user);
-    await ctx.session!.regenerateID();
+    // JWT Tokens für den neuen User generieren
+    const payload = createJwtPayload(user);
+    const { accessToken, refreshToken } = JwtService.generateTokenPair(payload);
 
-    return new HttpResponseOK({});
+    return createAuthResponse(user, accessToken, refreshToken, true);
   }
 
   @Get('/validate-role')
+  @JWTRequired()
   async validateRole(ctx: Context) {
-    // Überprüfe, ob der Benutzer eingeloggt ist
-    if (!ctx.user) {
-      return new HttpResponseUnauthorized();
-    }
-
-    // Hole den aktuellen Benutzer aus der Datenbank
-    const user = await User.findOne({
-      where: { id: ctx.user.id },
-      select: ['role'] // Nur die Rolle wird benötigt
+    // @JWTRequired() hat bereits den Token validiert und ctx.user gesetzt
+    const user = ctx.user as JwtPayload;
+    return new HttpResponseOK({ 
+      valid: true,
+      role: user.role,
+      userId: user.userId 
     });
+  }
 
-    if (!user) {
-      return new HttpResponseUnauthorized();
+  @Post('/refresh-token')
+  async refreshToken(ctx: Context) {
+    try {
+      const refreshToken = ctx.request.cookies.refreshToken;
+
+      if (!refreshToken) {
+        return new HttpResponseUnauthorized('Kein Refresh Token vorhanden');
+      }
+
+      // Refresh Token validieren
+      const payload = JwtService.verifyRefreshToken(refreshToken);
+
+      // Benutzer existiert noch?
+      const user = await User.findOneBy({ id: payload.userId });
+
+      if (!user) {
+        return new HttpResponseUnauthorized('Benutzer nicht gefunden');
+      }
+
+      // Neuen Access Token generieren
+      const newPayload = createJwtPayload(user);
+      const accessToken = JwtService.generateAccessToken(newPayload);
+
+      return new HttpResponseOK({ accessToken });
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return new HttpResponseUnauthorized('Ungültiger Refresh Token');
     }
-
-    // Gib die Rolle zurück
-    return new HttpResponseOK({ role: user.role });
   }
 
 }

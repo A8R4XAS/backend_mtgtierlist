@@ -1,9 +1,11 @@
 import { Context, Delete, Get, HttpResponseBadRequest, HttpResponseCreated, HttpResponseInternalServerError, HttpResponseNoContent, HttpResponseNotFound, HttpResponseOK, Post, ValidatePathParam } from '@foal/core';
+import { JWTRequired } from '@foal/jwt';
 import { Game } from '../entities/index';
 
 export class GameController {
 
   @Get('/')
+  @JWTRequired()
   async getGames() {
     // Spiele mit ihren Teilnahmen laden
     const games = await Game.find({ relations: ['participations'] });
@@ -12,19 +14,19 @@ export class GameController {
   }
 
   @Post('/')
+  @JWTRequired()
   async postGame(ctx: Context) {
     try {
       const game = new Game();
       await game.save();
       return new HttpResponseCreated(game);
     } catch (error) {
-      console.log(error);
       return new HttpResponseBadRequest(error);
     }
   }
 
-
   @Delete('/:id')
+  @JWTRequired()
   async deleteGame(ctx: Context) {
     const game = await Game.findOneBy({ id: ctx.request.params.id });
     if (!game) return new HttpResponseNotFound();
@@ -33,6 +35,7 @@ export class GameController {
   }
 
   @Get('/:id')
+  @JWTRequired()
   @ValidatePathParam('id', { type: 'number' })
   async getGame(ctx: Context) {
     try {
@@ -48,6 +51,7 @@ export class GameController {
   }
 
   @Get('/user/:userId')
+  @JWTRequired()
   async getGamesByUser(ctx: Context) {
     try {
       const userId = Number(ctx.request.params.userId);

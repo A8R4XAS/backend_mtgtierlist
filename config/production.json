@@ -3,6 +3,11 @@
     "cors": {
       "allowedOrigins": "[\"https://frontend-mtgtierlist.onrender.com\"]"
     },
+    "jwt": {
+      "secret": "CHANGE-THIS-IN-PRODUCTION-use-env-variable-min-64-chars-super-secret",
+      "refreshSecret": "CHANGE-THIS-IN-PRODUCTION-use-env-variable-min-64-chars-refresh-secret",
+      "secretEncoding": "utf8"
+    },
     "session": {
       "secret": "env(SESSION_SECRET)",
       "cookie": {

@@ -46,7 +46,6 @@ export class RatingController {
 			await rating.save();
 			return new HttpResponseCreated(rating);
 		} catch (error) {
-			console.log(error);
 			return new HttpResponseBadRequest(error);
 		}
 	}
@@ -99,7 +98,6 @@ export class RatingController {
 			await entity.save();
 			return new HttpResponseOK(entity);
 		} catch (error) {
-			console.log(error);
 			return new HttpResponseBadRequest(error);
 		}
 	}
@@ -123,7 +121,6 @@ export class RatingController {
 			});
 			return new HttpResponseOK(ratings);
 		} catch (error) {
-			console.error('Error fetching ratings by participation:', error);
 			return new HttpResponseBadRequest(error);
 		}
 	}
@@ -139,7 +136,6 @@ export class RatingController {
 			});
 			return new HttpResponseOK(ratings);
 		} catch (error) {
-			console.error('Error fetching ratings by rater:', error);
 			return new HttpResponseBadRequest(error);
 		}
 	}

@@ -1,7 +1,7 @@
-import { Context, controller, Get, HttpResponseOK, UserRequired } from '@foal/core';
+import { Context, controller, Get, HttpResponseOK } from '@foal/core';
 import { DeckController, GameController, ParticipationController, RatingController, StatisticsController, UserController, User_deckController } from './index';
 
-@UserRequired()
+// @UserRequired() removed - using @JWTRequired() on individual controller methods instead
 export class ApiController {
 
   subControllers = [
