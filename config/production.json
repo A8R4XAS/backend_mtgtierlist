@@ -4,8 +4,8 @@
       "allowedOrigins": "[\"https://frontend-mtgtierlist.onrender.com\"]"
     },
     "jwt": {
-      "secret": "CHANGE-THIS-IN-PRODUCTION-use-env-variable-min-64-chars-super-secret",
-      "refreshSecret": "CHANGE-THIS-IN-PRODUCTION-use-env-variable-min-64-chars-refresh-secret",
+      "secret": "env(JWT_SECRET)",
+      "refreshSecret": "env(JWT_REFRESH_SECRET)",
       "secretEncoding": "utf8"
     },
     "session": {

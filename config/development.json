@@ -4,8 +4,8 @@
       "allowedOrigins": "[\"http://localhost:5173\"]"
     },
     "jwt": {
-      "secret": "mtg-tierlist-super-secret-jwt-key-change-in-production-min-32-characters-long",
-      "refreshSecret": "mtg-tierlist-refresh-secret-key-change-in-production-min-32-characters-long",
+      "secret": "1jNsYYavfI3QfN5YNFffEs0Gjoxfht0xJS9KhFsFze0=",
+      "refreshSecret": "vVhWbXBacIoXVF797ErPb4Z8qEbUXVdtEco9iPRocGE=",
       "secretEncoding": "utf8"
     }
   },

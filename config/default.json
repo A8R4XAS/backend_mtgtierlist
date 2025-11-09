@@ -4,8 +4,8 @@
       "store": "@foal/typeorm"
     },
     "jwt": {
-      "secret": "mtg-tierlist-default-secret-key-for-fallback-min-32-chars",
-      "refreshSecret": "mtg-tierlist-default-refresh-secret-for-fallback-min-32-chars",
+      "secret": "xpHUPib2Iizfh68hkILYJHj/kB//bA5PJXtQzeXhMNA=",
+      "refreshSecret": "gGLUBDkffFsOn1fj358wXOxf9/3WmcV1T3KaJHtMfPE=",
       "secretEncoding": "utf8"
     },
     "disk": {
